@@ -156,8 +156,6 @@ class EmailSummarizer {
         };
     }
 
-
-
     /**
      * Extract email thread from conversation data (Missive API format)
      */
@@ -688,10 +686,104 @@ ${threadText}`;
     }
 
     /**
+     * Get 7L team user mapping for reliable matching
+     */
+    get7LUserMapping() {
+        return {
+            // Full names
+            'asya ray': '1eee7d0b-40c0-48bf-9bd0-770ad59bb30c',
+            'benjamin quattrocchi': '149ed9af-90c1-4b16-b43a-2e7b9e46214d',
+            'brandon wollam': 'a8b532e0-bb60-4361-b588-b409e8525290',
+            'brennan o\'dowd': '88ce993b-1e35-46d6-afb0-3bbe54eaee19',
+            'carl sipsky': '2356fbb0-ce5e-4e33-bfaa-ec62e4fd6901',
+            'casey hylander': 'b8a7bba2-9bc5-4465-8828-cd3197c28f65',
+            'christi kuhn': '53c12df0-7fbc-4f10-ae4d-ba23f42c3f7b', // Using first ID for Christi
+            'courtney clark': '1ecb8a50-ea96-43e9-8280-2df01624eef2',
+            'daniela barrera': 'c01e55f2-6625-4ec7-9506-2894e53576b6',
+            'delaney penn': '4f40321d-5eeb-4ada-b9e9-008920002ab2',
+            'emanuel dell ascenza': 'f5fd4298-38c1-43b3-9753-46eca52bbe05',
+            'emiliana kurowski': 'f0c90c05-2d03-4300-ba1a-8699270e9fea',
+            'geoff mullins': 'ec520376-fa10-4f7e-8709-af3ad2d58679',
+            'gerardo caciorgna': 'b7e0e578-7955-483b-95ce-8508f029e2e2',
+            'jessica spilsbury': '55775f35-733b-4f0c-9f63-76f5c05f8a29',
+            'kadi miller': 'afc2bfd8-1981-46c4-802a-44595118afed',
+            'kamerin blasingame': '640a18d9-99b1-491b-a170-8651b0b6c38c',
+            'kate gay': 'd6e052f0-83c2-40c8-8a89-7e6e0f1e34c2',
+            'katie johnson': 'a200c5c1-9935-44e9-8dd8-13d041a5c98a',
+            'kyle baxter': 'de39b0cd-3142-4484-a25f-0bc3f151f690',
+            'laura pelegrino': '56bd6b01-a1e4-4c2b-b4cf-0c6ed21a7f4e',
+            'luciano guerra': 'f52fae81-d366-4f56-8f53-a1a4ad542d6b',
+            'maxine sebastiani': '44c1df4d-492c-4f76-86e8-ce45926fe230',
+            'megan bernardi': '69849f87-44b3-4daa-a063-80909ba8b1fc',
+            'michaela kidder-davis': '6efcb9fb-978a-4264-ae73-179ea9dc556b',
+            'missy burris': '52f381b1-ec18-4ac8-a275-321bab9824b4',
+            'nathan tuccio': 'a5b1782f-3e54-41eb-872f-d17405598e53',
+            'rusty nelson': 'ad7396ce-afd9-400d-8f18-5063601ad4f9',
+            'sean burns': '732d0377-5b83-4651-9ab8-cf108c29d003',
+            'teddy peterschmidt': 'fdd77046-c861-4c83-879c-f604eea35d89',
+            
+            // Common short names/nicknames
+            'asya': '1eee7d0b-40c0-48bf-9bd0-770ad59bb30c',
+            'ben': '149ed9af-90c1-4b16-b43a-2e7b9e46214d',
+            'benjamin': '149ed9af-90c1-4b16-b43a-2e7b9e46214d',
+            'brandon': 'a8b532e0-bb60-4361-b588-b409e8525290',
+            'brennan': '88ce993b-1e35-46d6-afb0-3bbe54eaee19',
+            'carl': '2356fbb0-ce5e-4e33-bfaa-ec62e4fd6901',
+            'casey': 'b8a7bba2-9bc5-4465-8828-cd3197c28f65',
+            'christi': '53c12df0-7fbc-4f10-ae4d-ba23f42c3f7b',
+            'courtney': '1ecb8a50-ea96-43e9-8280-2df01624eef2',
+            'daniela': 'c01e55f2-6625-4ec7-9506-2894e53576b6',
+            'delaney': '4f40321d-5eeb-4ada-b9e9-008920002ab2',
+            'emanuel': 'f5fd4298-38c1-43b3-9753-46eca52bbe05',
+            'emiliana': 'f0c90c05-2d03-4300-ba1a-8699270e9fea',
+            'geoff': 'ec520376-fa10-4f7e-8709-af3ad2d58679',
+            'gerardo': 'b7e0e578-7955-483b-95ce-8508f029e2e2',
+            'jessica': '55775f35-733b-4f0c-9f63-76f5c05f8a29',
+            'kadi': 'afc2bfd8-1981-46c4-802a-44595118afed',
+            'kamerin': '640a18d9-99b1-491b-a170-8651b0b6c38c',
+            'kate': 'd6e052f0-83c2-40c8-8a89-7e6e0f1e34c2',
+            'katie': 'a200c5c1-9935-44e9-8dd8-13d041a5c98a',
+            'kyle': 'de39b0cd-3142-4484-a25f-0bc3f151f690',
+            'laura': '56bd6b01-a1e4-4c2b-b4cf-0c6ed21a7f4e',
+            'luciano': 'f52fae81-d366-4f56-8f53-a1a4ad542d6b',
+            'maxine': '44c1df4d-492c-4f76-86e8-ce45926fe230',
+            'megan': '69849f87-44b3-4daa-a063-80909ba8b1fc',
+            'michaela': '6efcb9fb-978a-4264-ae73-179ea9dc556b',
+            'missy': '52f381b1-ec18-4ac8-a275-321bab9824b4',
+            'nathan': 'a5b1782f-3e54-41eb-872f-d17405598e53',
+            'rusty': 'ad7396ce-afd9-400d-8f18-5063601ad4f9',
+            'sean': '732d0377-5b83-4651-9ab8-cf108c29d003',
+            'teddy': 'fdd77046-c861-4c83-879c-f604eea35d89'
+        };
+    }
+
+    /**
      * Assign the current conversation to a specific user by name
      */
     async assignTaskToUser(assigneeName) {
         try {
+            console.log(`🔍 Looking for user: "${assigneeName}"`);
+            
+            // First try the 7L user mapping for fast, reliable matching
+            const userMapping = this.get7LUserMapping();
+            const normalizedName = assigneeName.toLowerCase().trim();
+            
+            let userId = userMapping[normalizedName];
+            let matchedName = assigneeName;
+            
+            if (userId) {
+                console.log(`✅ Found user in 7L mapping: "${assigneeName}" -> ID: ${userId}`);
+                
+                // Assign the conversation to this user
+                await Missive.addAssignees([userId]);
+                
+                console.log(`✅ Successfully assigned conversation to ${assigneeName}`);
+                return;
+            }
+            
+            // Fallback to API-based matching
+            console.log('⚠️ Not found in 7L mapping, trying API-based matching...');
+            
             // Fetch all Missive users
             const users = await Missive.fetchUsers();
             
@@ -707,7 +799,7 @@ ${threadText}`;
             });
 
             if (matchingUser) {
-                console.log('✅ Found matching user:', matchingUser.display_name, 'ID:', matchingUser.id);
+                console.log('✅ Found matching user via API:', matchingUser.display_name, 'ID:', matchingUser.id);
                 
                 // Assign the conversation to this user
                 await Missive.addAssignees([matchingUser.id]);
@@ -715,13 +807,8 @@ ${threadText}`;
                 console.log(`✅ Successfully assigned conversation to ${matchingUser.display_name}`);
             } else {
                 console.log(`❌ No user found matching "${assigneeName}".`);
-                console.log('Available users:', users.map(u => ({
-                    id: u.id,
-                    display_name: u.display_name,
-                    full_name: `${u.first_name || ''} ${u.last_name || ''}`.trim(),
-                    first_name: u.first_name,
-                    last_name: u.last_name
-                })));
+                console.log('💡 Available in 7L mapping:', Object.keys(userMapping).join(', '));
+                console.log('💡 Available via API:', users.map(u => u.display_name || `${u.first_name} ${u.last_name}`).join(', '));
             }
 
         } catch (error) {
