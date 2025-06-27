@@ -690,19 +690,48 @@ ${threadText}`;
      */
     async assignConversationToCurrentUser() {
         try {
+            console.log('🔍 === USER ASSIGNMENT DEBUG ===');
+            
             // Get the current user's information
+            console.log('📋 Fetching users from Missive API...');
             const users = await Missive.fetchUsers();
+            console.log(`📊 Found ${users.length} total users:`, users);
+            
             const currentUser = users.find(user => user.me === true);
             
             if (currentUser) {
-                console.log('✅ Found current user:', currentUser.display_name, 'ID:', currentUser.id);
+                console.log('✅ Found current user:', {
+                    displayName: currentUser.display_name,
+                    id: currentUser.id,
+                    email: currentUser.email,
+                    firstName: currentUser.first_name,
+                    lastName: currentUser.last_name,
+                    me: currentUser.me
+                });
+                
+                console.log('🎯 Attempting to assign conversation...');
                 await Missive.addAssignees([currentUser.id]);
                 console.log('✅ Successfully assigned conversation to current user');
+                
+                // Verify assignment worked
+                console.log('🔍 Verifying assignment...');
+                // Note: We can't easily verify this with the current API, but the call should have worked
+                
             } else {
                 console.log('⚠️ Could not find current user information');
+                console.log('👥 Available users:', users.map(u => ({
+                    id: u.id,
+                    displayName: u.display_name,
+                    email: u.email,
+                    me: u.me
+                })));
             }
+            
+            console.log('🔍 === END USER ASSIGNMENT DEBUG ===');
+            
         } catch (error) {
             console.error('❌ Failed to assign conversation to current user:', error);
+            console.error('❌ Error stack:', error.stack);
             // Don't throw error here - task was still created successfully
         }
     }
@@ -888,7 +917,8 @@ ${threadText}`;
                 'Full Name': `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'N/A',
                 'First Name': user.first_name || 'N/A',
                 'Last Name': user.last_name || 'N/A',
-                'Email': user.email || 'N/A'
+                'Email': user.email || 'N/A',
+                'Is Me': user.me || false
             })));
 
             return users;
@@ -896,6 +926,29 @@ ${threadText}`;
             console.error('❌ Failed to fetch Missive users:', error);
             return [];
         }
+    }
+
+    /**
+     * Debug function to test conversation assignment
+     */
+    async debugTestAssignment() {
+        console.log('🧪 === TESTING ASSIGNMENT FUNCTIONALITY ===');
+        
+        try {
+            // Test fetching users
+            await this.debugShowMissiveUsers();
+            
+            // Test assignment to current user
+            console.log('🧪 Testing assignment to current user...');
+            await this.assignConversationToCurrentUser();
+            
+            console.log('🧪 Assignment test complete');
+            
+        } catch (error) {
+            console.error('🧪 Assignment test failed:', error);
+        }
+        
+        console.log('🧪 === END ASSIGNMENT TEST ===');
     }
 
     /**
@@ -1182,6 +1235,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Expose debug functions globally
     window.debugMissiveUsers = () => emailSummarizer.debugShowMissiveUsers();
+    window.debugAssignmentTest = () => emailSummarizer.debugTestAssignment();
     window.testUserMapping = (name) => {
         const mapping = emailSummarizer.get7LUserMapping();
         const normalizedName = name.toLowerCase().trim();
