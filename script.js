@@ -574,9 +574,13 @@ ${threadText}`;
 
         tasks.forEach(task => {
             const escapedTask = this.escapeHtml(task);
+            const escapedPersonName = this.escapeHtml(personName);
+            
+            console.log(`🏷️ Setting up task button: "${escapedTask}" -> assignee: "${escapedPersonName}"`);
+            
             html += `<li class="action-item">
                 <span class="action-text">${escapedTask}</span>
-                <button class="add-task-btn" data-task-text="${escapedTask}" data-assignee="${this.escapeHtml(personName)}" title="Add as Missive Task for ${this.escapeHtml(personName)}">
+                <button class="add-task-btn" data-task-text="${escapedTask}" data-assignee="${escapedPersonName}" title="Add as Missive Task for ${escapedPersonName}">
                     ✓ Add Task
                 </button>
             </li>`;
@@ -592,11 +596,18 @@ ${threadText}`;
     addTaskButtonListeners(contentDiv) {
         const taskButtons = contentDiv.querySelectorAll('.add-task-btn');
         
-        taskButtons.forEach(button => {
+        console.log(`🔗 Adding event listeners to ${taskButtons.length} task buttons`);
+        
+        taskButtons.forEach((button, index) => {
+            const taskText = button.getAttribute('data-task-text');
+            const assignee = button.getAttribute('data-assignee');
+            
+            console.log(`🔗 Button ${index + 1}: task="${taskText}", assignee="${assignee}"`);
+            
             button.addEventListener('click', async (e) => {
                 e.stopPropagation(); // Prevent section collapse
                 
-                const taskText = button.getAttribute('data-task-text');
+                console.log(`🖱️ Button clicked: task="${taskText}", assignee="${assignee}"`);
                 await this.createMissiveTask(taskText, button);
             });
         });
@@ -612,7 +623,9 @@ ${threadText}`;
                 throw new Error('Missive API not available');
             }
 
-            console.log('Creating Missive task:', taskText);
+            console.log('🎯 === TASK CREATION DEBUG ===');
+            console.log('📝 Task text:', taskText);
+            console.log('🏷️ Button data-assignee:', buttonElement.getAttribute('data-assignee'));
             
             // Disable button and show loading
             buttonElement.disabled = true;
@@ -622,15 +635,23 @@ ${threadText}`;
             const assigneeName = buttonElement.getAttribute('data-assignee') || 
                                 this.parseTaskAssignee(taskText).assigneeName;
             
+            console.log('👤 Detected assignee:', assigneeName);
+            
             // Use clean task text (no assignee prefix)
             const cleanTaskText = assigneeName ? taskText : this.parseTaskAssignee(taskText).cleanTaskText;
+            console.log('✂️ Clean task text:', cleanTaskText);
             
             // Create the task using Missive API
+            console.log('📋 Creating task in Missive...');
             await Missive.createTask(cleanTaskText, false);
+            console.log('✅ Task created successfully in Missive');
             
             // If we found an assignee, try to assign the conversation to that user
             if (assigneeName) {
+                console.log('🎯 Attempting to assign conversation to:', assigneeName);
                 await this.assignTaskToUser(assigneeName);
+            } else {
+                console.log('⚠️ No assignee found - task created but not assigned');
             }
             
             // Show success state
@@ -638,10 +659,12 @@ ${threadText}`;
             buttonElement.textContent = successText;
             buttonElement.classList.add('task-created');
             
-            console.log('Task created successfully:', cleanTaskText, assigneeName ? `(assigned to ${assigneeName})` : '');
+            console.log('🎉 Task creation complete:', cleanTaskText, assigneeName ? `(assigned to ${assigneeName})` : '');
+            console.log('🎯 === END TASK DEBUG ===');
 
         } catch (error) {
-            console.error('Failed to create task:', error);
+            console.error('❌ Failed to create task:', error);
+            console.error('❌ Error details:', error.message, error.stack);
             
             // Show error state
             buttonElement.textContent = '✗ Failed';
@@ -1144,6 +1167,49 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('💡 Available names:', Object.keys(mapping).join(', '));
             return { found: false, name };
         }
+    };
+    
+    // Test specific user assignment
+    window.testBrennanAssignment = async () => {
+        console.log('🧪 === TESTING BRENNAN ASSIGNMENT ===');
+        
+        // Test the mapping
+        const result = testUserMapping("Brennan O'Dowd");
+        console.log('🗂️ Mapping result:', result);
+        
+        // Test the assignment function directly
+        try {
+            console.log('🎯 Testing direct assignment...');
+            await emailSummarizer.assignTaskToUser("Brennan O'Dowd");
+            console.log('✅ Assignment test completed');
+        } catch (error) {
+            console.error('❌ Assignment test failed:', error);
+        }
+        
+        console.log('🧪 === END BRENNAN TEST ===');
+    };
+    
+    // Debug current task buttons on page
+    window.debugTaskButtons = () => {
+        console.log('🔍 === DEBUGGING CURRENT TASK BUTTONS ===');
+        const buttons = document.querySelectorAll('.add-task-btn');
+        console.log(`🔍 Found ${buttons.length} task buttons`);
+        
+        buttons.forEach((button, index) => {
+            const taskText = button.getAttribute('data-task-text');
+            const assignee = button.getAttribute('data-assignee');
+            const buttonText = button.textContent;
+            
+            console.log(`🔍 Button ${index + 1}:`, {
+                taskText,
+                assignee,
+                buttonText,
+                disabled: button.disabled,
+                classes: button.className
+            });
+        });
+        
+        console.log('🔍 === END BUTTON DEBUG ===');
     };
 });
 

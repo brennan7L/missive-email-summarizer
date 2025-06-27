@@ -164,6 +164,21 @@ testUserMapping("Brennan")         // Test first name
 testUserMapping("rusty nelson")    // Test lowercase
 ```
 
+### Test Task Assignment
+If tasks aren't being assigned correctly, run these tests:
+```javascript
+testBrennanAssignment()    // Test Brennan's assignment specifically
+debugTaskButtons()         // Check all task buttons and their data
+debugMissiveUsers()        // See all available Missive users
+```
+
+### Debug Task Creation Issues
+If clicking "Add Task" doesn't work:
+1. **Open Console** (F12) and click "Add Task" 
+2. **Look for errors** in the console output
+3. **Check task button data** with `debugTaskButtons()`
+4. **Test user mapping** with `testUserMapping("Brennan O'Dowd")`
+
 This will show a table of all available Missive users with their:
 - ID
 - Display Name
