@@ -8,6 +8,7 @@ class EmailSummarizer {
         console.log('EmailSummarizer: Starting initialization...');
         this.currentConversationId = null;
         this.currentConversation = null;
+        this.loadingInterval = null;
         this.initializeElements();
         this.openaiApiKey = this.extractApiKey();
         this.initializeMissiveAPI();
@@ -603,11 +604,55 @@ ${threadText}`;
     }
 
     /**
-     * Show loading state
+     * Show loading state with progressive messages
      */
     showLoading() {
         this.hideAllStates();
         this.elements.loading.style.display = 'block';
+        this.startLoadingAnimation();
+    }
+
+    /**
+     * Start the progressive loading animation
+     */
+    startLoadingAnimation() {
+        const loadingMessages = [
+            "🧙‍♂️ Casting analysis spell...",
+            "📧 Reading email threads...", 
+            "🔍 Extracting key insights...",
+            "🧠 Processing with AI magic...",
+            "📝 Organizing findings...",
+            "✨ Almost done!"
+        ];
+
+        let messageIndex = 0;
+        const loadingTextElement = document.getElementById('loading-text');
+        
+        if (!loadingTextElement) return;
+
+        // Clear any existing interval
+        if (this.loadingInterval) {
+            clearInterval(this.loadingInterval);
+        }
+
+        // Set initial message
+        loadingTextElement.textContent = loadingMessages[0];
+
+        // Cycle through messages
+        this.loadingInterval = setInterval(() => {
+            messageIndex = (messageIndex + 1) % loadingMessages.length;
+            loadingTextElement.textContent = loadingMessages[messageIndex];
+        }, 2000); // Change message every 2 seconds
+    }
+
+    /**
+     * Stop loading animation
+     */
+    stopLoadingAnimation() {
+        if (this.loadingInterval) {
+            clearInterval(this.loadingInterval);
+            this.loadingInterval = null;
+        }
     }
 
     /**
@@ -693,6 +738,9 @@ ${threadText}`;
         this.elements.readyState.style.display = 'none';
         this.elements.errorState.style.display = 'none';
         this.elements.summaryContent.style.display = 'none';
+        
+        // Stop loading animation when hiding states
+        this.stopLoadingAnimation();
     }
 
     /**
