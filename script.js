@@ -103,6 +103,9 @@ class EmailSummarizer {
     async processConversation(conversation) {
         try {
             console.log('Processing conversation data...');
+            
+            // Show loading animation immediately
+            this.showLoading();
 
             const emailThread = this.extractEmailThread(conversation);
             
@@ -705,10 +708,26 @@ ${threadText}`;
 
         try {
             console.log('Manual summarization triggered');
+            
+            // Provide immediate button feedback
+            const summarizeButton = document.getElementById('summarize-button');
+            if (summarizeButton) {
+                summarizeButton.disabled = true;
+                summarizeButton.textContent = '🧙‍♂️ Working...';
+            }
+            
             await this.processConversation(this.currentConversation);
+            
         } catch (error) {
             console.error('Error during manual summarization:', error);
             this.showError('Failed to summarize conversation. Please try again.');
+        } finally {
+            // Re-enable button if still visible
+            const summarizeButton = document.getElementById('summarize-button');
+            if (summarizeButton) {
+                summarizeButton.disabled = false;
+                summarizeButton.textContent = '🧙‍♂️ Summarize This';
+            }
         }
     }
 
