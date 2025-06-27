@@ -365,6 +365,67 @@
     line-height: 1.4;
 }
 
+/* Person-grouped Action Items */
+.person-section {
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.person-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px 8px 0 0;
+}
+
+.person-name {
+    font-weight: 600;
+    color: #ffffff;
+    font-size: 14px;
+}
+
+.task-count {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 400;
+}
+
+.person-tasks {
+    margin: 0;
+    padding: 12px 16px;
+    list-style: none;
+}
+
+.person-tasks .action-item {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 8px 0;
+}
+
+.person-tasks .action-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.standalone-task {
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.no-action-items {
+    color: rgba(255, 255, 255, 0.6);
+    font-style: italic;
+    text-align: center;
+    padding: 20px;
+}
+
 .add-task-btn {
     padding: 4px 8px;
     font-size: 11px;

@@ -491,30 +491,100 @@ ${threadText}`;
      */
     formatContentAsHTML(content, isActionItems = false) {
         const lines = content.split('\n').filter(line => line.trim());
-        let html = '<ul>';
         
-        for (let i = 0; i < lines.length; i++) {
-            const trimmedLine = lines[i].trim();
-            if (trimmedLine) {
-                // Remove existing bullet points and format
-                const cleanLine = trimmedLine.replace(/^[•\-\*]\s*/, '');
-                const escapedLine = this.escapeHtml(cleanLine);
-                
-                if (isActionItems) {
-                    // Add task creation button for action items
-                    html += `<li class="action-item">
-                        <span class="action-text">${escapedLine}</span>
-                        <button class="add-task-btn" data-task-text="${this.escapeHtml(cleanLine)}" title="Add as Missive Task">
-                            ✓ Add Task
-                        </button>
-                    </li>`;
-                } else {
+        if (!isActionItems) {
+            // Non-action items - simple list
+            let html = '<ul>';
+            for (let i = 0; i < lines.length; i++) {
+                const trimmedLine = lines[i].trim();
+                if (trimmedLine) {
+                    const cleanLine = trimmedLine.replace(/^[•\-\*]\s*/, '');
+                    const escapedLine = this.escapeHtml(cleanLine);
                     html += `<li>${escapedLine}</li>`;
                 }
             }
+            html += '</ul>';
+            return html;
         }
-        
-        html += '</ul>';
+
+        // Action items - group by person
+        return this.formatActionItemsGrouped(lines);
+    }
+
+    /**
+     * Format action items grouped by assignee
+     */
+    formatActionItemsGrouped(lines) {
+        let html = '';
+        let currentPerson = null;
+        let personTasks = [];
+
+        const personHeaderPattern = /^\*\*([^*]+)\*\*:?\s*$/; // Matches **Name**: or **Name**:
+
+        for (let i = 0; i < lines.length; i++) {
+            const trimmedLine = lines[i].trim();
+            if (!trimmedLine) continue;
+
+            const cleanLine = trimmedLine.replace(/^[•\-\*]\s*/, '');
+            const personMatch = cleanLine.match(personHeaderPattern);
+
+            if (personMatch) {
+                // Found a person header - save previous person's tasks first
+                if (currentPerson && personTasks.length > 0) {
+                    html += this.renderPersonSection(currentPerson, personTasks);
+                }
+                
+                // Start new person section
+                currentPerson = personMatch[1].trim();
+                personTasks = [];
+            } else if (currentPerson) {
+                // This is a task under the current person
+                personTasks.push(cleanLine);
+            } else {
+                // Task without a person header - render as standalone
+                html += `<div class="standalone-task">
+                    <div class="action-item">
+                        <span class="action-text">${this.escapeHtml(cleanLine)}</span>
+                        <button class="add-task-btn" data-task-text="${this.escapeHtml(cleanLine)}" title="Add as Missive Task">
+                            ✓ Add Task
+                        </button>
+                    </div>
+                </div>`;
+            }
+        }
+
+        // Render final person's tasks if any
+        if (currentPerson && personTasks.length > 0) {
+            html += this.renderPersonSection(currentPerson, personTasks);
+        }
+
+        return html || '<div class="no-action-items">No action items found.</div>';
+    }
+
+    /**
+     * Render a person section with their tasks
+     */
+    renderPersonSection(personName, tasks) {
+        if (tasks.length === 0) return '';
+
+        let html = `<div class="person-section">
+            <div class="person-header">
+                <span class="person-name">👤 ${this.escapeHtml(personName)}</span>
+                <span class="task-count">(${tasks.length} task${tasks.length > 1 ? 's' : ''})</span>
+            </div>
+            <ul class="person-tasks">`;
+
+        tasks.forEach(task => {
+            const escapedTask = this.escapeHtml(task);
+            html += `<li class="action-item">
+                <span class="action-text">${escapedTask}</span>
+                <button class="add-task-btn" data-task-text="${escapedTask}" data-assignee="${this.escapeHtml(personName)}" title="Add as Missive Task for ${this.escapeHtml(personName)}">
+                    ✓ Add Task
+                </button>
+            </li>`;
+        });
+
+        html += '</ul></div>';
         return html;
     }
 
@@ -550,8 +620,12 @@ ${threadText}`;
             buttonElement.disabled = true;
             buttonElement.textContent = 'Creating...';
             
-            // Extract assignee and clean task text
-            const { assigneeName, cleanTaskText } = this.parseTaskAssignee(taskText);
+            // Get assignee from button data attribute (preferred) or parse from text
+            const assigneeName = buttonElement.getAttribute('data-assignee') || 
+                                this.parseTaskAssignee(taskText).assigneeName;
+            
+            // Use clean task text (no assignee prefix)
+            const cleanTaskText = assigneeName ? taskText : this.parseTaskAssignee(taskText).cleanTaskText;
             
             // Create the task using Missive API
             await Missive.createTask(cleanTaskText, false);
@@ -633,20 +707,56 @@ ${threadText}`;
             });
 
             if (matchingUser) {
-                console.log('Found matching user:', matchingUser.display_name, 'ID:', matchingUser.id);
+                console.log('✅ Found matching user:', matchingUser.display_name, 'ID:', matchingUser.id);
                 
                 // Assign the conversation to this user
                 await Missive.addAssignees([matchingUser.id]);
                 
-                console.log(`Successfully assigned conversation to ${matchingUser.display_name}`);
+                console.log(`✅ Successfully assigned conversation to ${matchingUser.display_name}`);
             } else {
-                console.log(`No user found matching "${assigneeName}". Available users:`, 
-                    users.map(u => u.display_name || `${u.first_name} ${u.last_name}`));
+                console.log(`❌ No user found matching "${assigneeName}".`);
+                console.log('Available users:', users.map(u => ({
+                    id: u.id,
+                    display_name: u.display_name,
+                    full_name: `${u.first_name || ''} ${u.last_name || ''}`.trim(),
+                    first_name: u.first_name,
+                    last_name: u.last_name
+                })));
             }
 
         } catch (error) {
             console.error('Failed to assign task to user:', error);
             // Don't throw error here - task was still created successfully
+        }
+    }
+
+    /**
+     * Debug function to show all available Missive users
+     */
+    async debugShowMissiveUsers() {
+        try {
+            if (typeof Missive === 'undefined') {
+                console.log('❌ Missive API not available');
+                return;
+            }
+
+            console.log('🔍 Fetching Missive users...');
+            const users = await Missive.fetchUsers();
+            
+            console.log(`📋 Found ${users.length} Missive users:`);
+            console.table(users.map(user => ({
+                ID: user.id,
+                'Display Name': user.display_name || 'N/A',
+                'Full Name': `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'N/A',
+                'First Name': user.first_name || 'N/A',
+                'Last Name': user.last_name || 'N/A',
+                'Email': user.email || 'N/A'
+            })));
+
+            return users;
+        } catch (error) {
+            console.error('❌ Failed to fetch Missive users:', error);
+            return [];
         }
     }
 
@@ -931,6 +1041,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Make it globally available for onclick handlers
     window.emailSummarizer = emailSummarizer;
+    
+    // Expose debug functions globally
+    window.debugMissiveUsers = () => emailSummarizer.debugShowMissiveUsers();
 });
 
 // Handle errors globally
