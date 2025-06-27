@@ -490,7 +490,7 @@ ${threadText}`;
     }
 
     /**
-     * Create a task in Missive using the API
+     * Create a task in Missive using the API with smart user assignment
      */
     async createMissiveTask(taskText, buttonElement) {
         try {
@@ -505,14 +505,23 @@ ${threadText}`;
             buttonElement.disabled = true;
             buttonElement.textContent = 'Creating...';
             
+            // Extract assignee and clean task text
+            const { assigneeName, cleanTaskText } = this.parseTaskAssignee(taskText);
+            
             // Create the task using Missive API
-            await Missive.createTask(taskText, false);
+            await Missive.createTask(cleanTaskText, false);
+            
+            // If we found an assignee, try to assign the conversation to that user
+            if (assigneeName) {
+                await this.assignTaskToUser(assigneeName);
+            }
             
             // Show success state
-            buttonElement.textContent = '✓ Added!';
+            const successText = assigneeName ? `✓ Added to ${assigneeName}!` : '✓ Added!';
+            buttonElement.textContent = successText;
             buttonElement.classList.add('task-created');
             
-            console.log('Task created successfully:', taskText);
+            console.log('Task created successfully:', cleanTaskText, assigneeName ? `(assigned to ${assigneeName})` : '');
 
         } catch (error) {
             console.error('Failed to create task:', error);
@@ -527,6 +536,72 @@ ${threadText}`;
                 buttonElement.textContent = '✓ Add Task';
                 buttonElement.classList.remove('task-error');
             }, 3000);
+        }
+    }
+
+    /**
+     * Parse task text to extract assignee name and clean task description
+     */
+    parseTaskAssignee(taskText) {
+        // Look for patterns like "Name:" or "Name -" or "Name should" etc.
+        const patterns = [
+            /^([A-Z][a-z]+ [A-Z][a-z]+):\s*(.+)$/,           // "John Smith: do something"
+            /^([A-Z][a-z]+ [A-Z][a-z]+)\s*-\s*(.+)$/,        // "John Smith - do something"  
+            /^([A-Z][a-z]+):\s*(.+)$/,                       // "John: do something"
+            /^([A-Z][a-z]+)\s*-\s*(.+)$/,                    // "John - do something"
+            /^([A-Z][a-z]+ [A-Z][a-z]+)\s+(should|needs?|must|will)\s+(.+)$/i, // "John Smith should do something"
+            /^([A-Z][a-z]+)\s+(should|needs?|must|will)\s+(.+)$/i             // "John should do something"
+        ];
+
+        for (const pattern of patterns) {
+            const match = taskText.match(pattern);
+            if (match) {
+                const assigneeName = match[1];
+                const cleanTaskText = match[2] || match[3] || taskText;
+                
+                console.log('Parsed task assignee:', assigneeName, 'Task:', cleanTaskText);
+                return { assigneeName, cleanTaskText };
+            }
+        }
+
+        // No assignee found, return original text
+        return { assigneeName: null, cleanTaskText: taskText };
+    }
+
+    /**
+     * Assign the current conversation to a specific user by name
+     */
+    async assignTaskToUser(assigneeName) {
+        try {
+            // Fetch all Missive users
+            const users = await Missive.fetchUsers();
+            
+            // Find user by name (try different name combinations)
+            const matchingUser = users.find(user => {
+                const userDisplayName = user.display_name || '';
+                const userFullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+                const userFirstName = user.first_name || '';
+                
+                return userDisplayName.toLowerCase().includes(assigneeName.toLowerCase()) ||
+                       userFullName.toLowerCase().includes(assigneeName.toLowerCase()) ||
+                       userFirstName.toLowerCase() === assigneeName.toLowerCase();
+            });
+
+            if (matchingUser) {
+                console.log('Found matching user:', matchingUser.display_name, 'ID:', matchingUser.id);
+                
+                // Assign the conversation to this user
+                await Missive.addAssignees([matchingUser.id]);
+                
+                console.log(`Successfully assigned conversation to ${matchingUser.display_name}`);
+            } else {
+                console.log(`No user found matching "${assigneeName}". Available users:`, 
+                    users.map(u => u.display_name || `${u.first_name} ${u.last_name}`));
+            }
+
+        } catch (error) {
+            console.error('Failed to assign task to user:', error);
+            // Don't throw error here - task was still created successfully
         }
     }
 
