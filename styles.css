@@ -12,11 +12,27 @@
     padding-bottom: 12px;
 }
 
-.integration-title {
+/* Magic Eye ASCII Title */
+.magic-eye-title {
+    text-align: center;
     margin: 0;
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--text-color, #333);
+    padding: 10px 0;
+}
+
+.ascii-art {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    line-height: 1.2;
+    color: #ffffff;
+    margin: 0;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    background: linear-gradient(135deg, rgba(138, 43, 226, 0.2), rgba(75, 0, 130, 0.2));
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    white-space: pre;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(138, 43, 226, 0.3);
 }
 
 .content {
@@ -284,8 +300,9 @@
         padding: 12px;
     }
     
-    .integration-title {
-        font-size: 16px;
+    .ascii-art {
+        font-size: 10px;
+        padding: 8px;
     }
     
     .section-header {
@@ -304,9 +321,7 @@
     color: #ffffff;
 }
 
-.integration-title {
-    color: #ffffff;
-}
+/* ASCII title already has white color styling above */
 
 .section-header {
     background-color: rgba(255, 255, 255, 0.1);
