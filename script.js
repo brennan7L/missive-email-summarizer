@@ -307,12 +307,57 @@ ${threadText}`;
                 this.elements.summarySection.appendChild(sectionElement);
             });
 
+            // Set up expand/collapse all controls
+            this.setupSummaryControls();
+
             this.showSummary();
 
         } catch (error) {
             console.error('Error displaying summary:', error);
             this.showError('Failed to display summary.');
         }
+    }
+
+    /**
+     * Set up expand all / collapse all button event listeners
+     */
+    setupSummaryControls() {
+        const expandAllBtn = document.getElementById('expand-all-btn');
+        const collapseAllBtn = document.getElementById('collapse-all-btn');
+
+        if (expandAllBtn) {
+            expandAllBtn.addEventListener('click', () => {
+                this.expandAllSections();
+            });
+        }
+
+        if (collapseAllBtn) {
+            collapseAllBtn.addEventListener('click', () => {
+                this.collapseAllSections();
+            });
+        }
+    }
+
+    /**
+     * Expand all summary sections
+     */
+    expandAllSections() {
+        const headers = this.elements.summarySection.querySelectorAll('.section-header');
+        const contents = this.elements.summarySection.querySelectorAll('.section-content');
+
+        headers.forEach(header => header.classList.remove('collapsed'));
+        contents.forEach(content => content.classList.remove('collapsed'));
+    }
+
+    /**
+     * Collapse all summary sections  
+     */
+    collapseAllSections() {
+        const headers = this.elements.summarySection.querySelectorAll('.section-header');
+        const contents = this.elements.summarySection.querySelectorAll('.section-content');
+
+        headers.forEach(header => header.classList.add('collapsed'));
+        contents.forEach(content => content.classList.add('collapsed'));
     }
 
     /**
@@ -416,23 +461,23 @@ ${threadText}`;
         // Add comment button event listener
         this.addCommentButtonListener(headerDiv);
 
-        // Add click handler for collapse/expand (only on the title, not buttons)
-        const titleSpan = headerDiv.querySelector('span:first-child');
-        const toggleIcon = headerDiv.querySelector('.toggle-icon');
-        
-        [titleSpan, toggleIcon].forEach(element => {
-            element.addEventListener('click', (e) => {
-                e.stopPropagation(); // Prevent button clicks
-                const isCurrentlyCollapsed = headerDiv.classList.contains('collapsed');
-                
-                if (isCurrentlyCollapsed) {
-                    headerDiv.classList.remove('collapsed');
-                    contentDiv.classList.remove('collapsed');
-                } else {
-                    headerDiv.classList.add('collapsed');
-                    contentDiv.classList.add('collapsed');
-                }
-            });
+        // Make entire header clickable (except buttons)
+        headerDiv.addEventListener('click', (e) => {
+            // Don't toggle if clicking on buttons
+            if (e.target.classList.contains('comment-section-btn') || 
+                e.target.closest('.comment-section-btn')) {
+                return;
+            }
+            
+            const isCurrentlyCollapsed = headerDiv.classList.contains('collapsed');
+            
+            if (isCurrentlyCollapsed) {
+                headerDiv.classList.remove('collapsed');
+                contentDiv.classList.remove('collapsed');
+            } else {
+                headerDiv.classList.add('collapsed');
+                contentDiv.classList.add('collapsed');
+            }
         });
 
         sectionDiv.appendChild(headerDiv);
