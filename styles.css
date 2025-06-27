@@ -193,4 +193,57 @@
 .test-button:hover {
     background-color: rgba(255, 255, 255, 0.2);
     border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Action Items with Task Buttons */
+.action-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+    margin-bottom: 8px;
+}
+
+.action-text {
+    flex: 1;
+    margin-right: 12px;
+    line-height: 1.4;
+}
+
+.add-task-btn {
+    padding: 4px 8px;
+    font-size: 11px;
+    background-color: rgba(40, 167, 69, 0.8);
+    color: #ffffff;
+    border: 1px solid rgba(40, 167, 69, 1);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    min-width: 70px;
+    text-align: center;
+}
+
+.add-task-btn:hover {
+    background-color: rgba(40, 167, 69, 1);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.add-task-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+    transform: none;
+    box-shadow: none;
+}
+
+.add-task-btn.task-created {
+    background-color: rgba(25, 135, 84, 0.9);
+    border-color: rgba(25, 135, 84, 1);
+    cursor: default;
+}
+
+.add-task-btn.task-error {
+    background-color: rgba(220, 53, 69, 0.8);
+    border-color: rgba(220, 53, 69, 1);
 } 

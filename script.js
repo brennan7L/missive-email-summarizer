@@ -388,9 +388,15 @@ ${threadText}`;
         const contentDiv = document.createElement('div');
         contentDiv.className = `section-content ${isExpanded ? '' : 'collapsed'}`;
         
-        // Convert content to HTML with bullet points
-        const formattedContent = this.formatContentAsHTML(content);
+        // Check if this is an Action Items section to add task buttons
+        const isActionItems = title.toLowerCase().includes('action item');
+        const formattedContent = this.formatContentAsHTML(content, isActionItems);
         contentDiv.innerHTML = formattedContent;
+
+        // Add task creation event listeners if this is an action items section
+        if (isActionItems) {
+            this.addTaskButtonListeners(contentDiv);
+        }
 
         // Add click handler for collapse/expand
         headerDiv.addEventListener('click', () => {
@@ -412,23 +418,92 @@ ${threadText}`;
     }
 
     /**
-     * Format content as HTML with proper bullet points
+     * Format content as HTML with proper bullet points and optional task buttons
      */
-    formatContentAsHTML(content) {
+    formatContentAsHTML(content, isActionItems = false) {
         const lines = content.split('\n').filter(line => line.trim());
         let html = '<ul>';
         
-        for (const line of lines) {
-            const trimmedLine = line.trim();
+        for (let i = 0; i < lines.length; i++) {
+            const trimmedLine = lines[i].trim();
             if (trimmedLine) {
                 // Remove existing bullet points and format
                 const cleanLine = trimmedLine.replace(/^[•\-\*]\s*/, '');
-                html += `<li>${this.escapeHtml(cleanLine)}</li>`;
+                const escapedLine = this.escapeHtml(cleanLine);
+                
+                if (isActionItems) {
+                    // Add task creation button for action items
+                    html += `<li class="action-item">
+                        <span class="action-text">${escapedLine}</span>
+                        <button class="add-task-btn" data-task-text="${this.escapeHtml(cleanLine)}" title="Add as Missive Task">
+                            ✓ Add Task
+                        </button>
+                    </li>`;
+                } else {
+                    html += `<li>${escapedLine}</li>`;
+                }
             }
         }
         
         html += '</ul>';
         return html;
+    }
+
+    /**
+     * Add event listeners for task creation buttons
+     */
+    addTaskButtonListeners(contentDiv) {
+        const taskButtons = contentDiv.querySelectorAll('.add-task-btn');
+        
+        taskButtons.forEach(button => {
+            button.addEventListener('click', async (e) => {
+                e.stopPropagation(); // Prevent section collapse
+                
+                const taskText = button.getAttribute('data-task-text');
+                await this.createMissiveTask(taskText, button);
+            });
+        });
+    }
+
+    /**
+     * Create a task in Missive using the API
+     */
+    async createMissiveTask(taskText, buttonElement) {
+        try {
+            // Check if Missive API is available
+            if (typeof Missive === 'undefined') {
+                throw new Error('Missive API not available');
+            }
+
+            console.log('Creating Missive task:', taskText);
+            
+            // Disable button and show loading
+            buttonElement.disabled = true;
+            buttonElement.textContent = 'Creating...';
+            
+            // Create the task using Missive API
+            await Missive.createTask(taskText, false);
+            
+            // Show success state
+            buttonElement.textContent = '✓ Added!';
+            buttonElement.classList.add('task-created');
+            
+            console.log('Task created successfully:', taskText);
+
+        } catch (error) {
+            console.error('Failed to create task:', error);
+            
+            // Show error state
+            buttonElement.textContent = '✗ Failed';
+            buttonElement.classList.add('task-error');
+            
+            // Reset button after a delay
+            setTimeout(() => {
+                buttonElement.disabled = false;
+                buttonElement.textContent = '✓ Add Task';
+                buttonElement.classList.remove('task-error');
+            }, 3000);
+        }
     }
 
     /**
