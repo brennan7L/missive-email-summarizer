@@ -9,8 +9,30 @@ class EmailSummarizer {
         this.currentConversationId = null;
         this.initializeElements();
         this.openaiApiKey = this.extractApiKey();
+        this.setupMessageListener();
         this.initializeMissiveIntegration();
         console.log('EmailSummarizer: Initialization complete');
+    }
+
+    /**
+     * Set up message listener for parent window communication
+     */
+    setupMessageListener() {
+        console.log('Setting up message listener for parent communication...');
+        
+        window.addEventListener('message', (event) => {
+            console.log('Received message from parent:', event);
+            console.log('Message origin:', event.origin);
+            console.log('Message data:', event.data);
+            
+            // Check if this is a Missive API message
+            if (event.data && typeof event.data === 'object') {
+                if (event.data.type === 'missive-api') {
+                    console.log('Received Missive API message!');
+                    // Handle Missive API messages here
+                }
+            }
+        });
     }
 
     /**
@@ -60,16 +82,41 @@ class EmailSummarizer {
      * Wait for Missive API to become available with retry logic
      */
     waitForMissiveAPI(attempt = 0) {
-        const maxAttempts = 10;
-        const retryDelay = 500; // 500ms between attempts
+        const maxAttempts = 15;
+        const retryDelay = 1000; // 1 second between attempts
         
         console.log(`Attempt ${attempt + 1}/${maxAttempts} - Checking for Missive API...`);
         
-        if (typeof Missive !== 'undefined' && Missive.on) {
+        // Comprehensive debugging of the window object
+        console.log('=== IFRAME ENVIRONMENT DEBUG ===');
+        console.log('window.location:', window.location.href);
+        console.log('window.parent:', window.parent);
+        console.log('window.top:', window.top);
+        console.log('document.referrer:', document.referrer);
+        console.log('typeof Missive:', typeof Missive);
+        console.log('window.Missive:', window.Missive);
+        console.log('window.parent.Missive:', window.parent?.Missive);
+        console.log('window.top.Missive:', window.top?.Missive);
+        
+        // Check all possible window properties that might contain Missive
+        console.log('Window properties containing "missive" or "Missive":');
+        Object.keys(window).forEach(key => {
+            if (key.toLowerCase().includes('missive')) {
+                console.log(`  window.${key}:`, window[key]);
+            }
+        });
+        
+        // Check if parent has postMessage capabilities
+        console.log('Can postMessage to parent:', typeof window.parent.postMessage === 'function');
+        
+        // Try different ways to access Missive API
+        const possibleMissive = window.Missive || window.parent?.Missive || window.top?.Missive;
+        
+        if (possibleMissive && typeof possibleMissive.on === 'function') {
             console.log('Missive API found, setting up listeners...');
             
             // Listen for conversation changes
-            Missive.on('change:conversations', (conversations) => {
+            possibleMissive.on('change:conversations', (conversations) => {
                 console.log('Conversation change detected:', conversations);
                 this.handleConversationChange(conversations);
             });
@@ -81,12 +128,34 @@ class EmailSummarizer {
             return;
         }
         
+        // Try alternative: Check if we can communicate with parent via postMessage
+        if (attempt === 0) {
+            console.log('Trying to communicate with parent via postMessage...');
+            try {
+                window.parent.postMessage({ type: 'missive-integration-ready' }, '*');
+            } catch (e) {
+                console.log('PostMessage failed:', e);
+            }
+        }
+        
         if (attempt < maxAttempts) {
             console.log(`Missive API not ready yet, retrying in ${retryDelay}ms...`);
             setTimeout(() => this.waitForMissiveAPI(attempt + 1), retryDelay);
         } else {
             console.error('Missive API not available after maximum attempts');
-            this.showError('Missive API not available. Make sure this is running within a Missive iFrame.');
+            console.log('=== FINAL DEBUG INFO ===');
+            console.log('This might not be running in a proper Missive iframe context');
+            console.log('Or the Missive API structure has changed');
+            
+            // Show error but also allow manual testing
+            this.showError('Missive API not available. Make sure this is running within a Missive iFrame. (Click here to test manually)');
+            
+            // Add click handler for manual testing
+            this.elements.errorState.style.cursor = 'pointer';
+            this.elements.errorState.addEventListener('click', () => {
+                console.log('Manual test triggered');
+                this.testManualSummary();
+            });
         }
     }
 
@@ -489,6 +558,47 @@ ${threadText}`;
         this.elements.emptyState.style.display = 'none';
         this.elements.errorState.style.display = 'none';
         this.elements.summaryContent.style.display = 'none';
+    }
+
+    /**
+     * Test manual summary generation (for debugging)
+     */
+    async testManualSummary() {
+        if (!this.openaiApiKey) {
+            this.showError('OpenAI API key required for testing.');
+            return;
+        }
+
+        console.log('Testing manual summary generation...');
+        this.showLoading();
+
+        // Create mock email thread data
+        const mockEmailThread = [
+            {
+                sender: 'John Customer',
+                date: 'Jun 27, 2025, 2:30 PM',
+                body: 'Hi, I need help with setting up the new integration. Can you provide step-by-step instructions? Also, what are the pricing options available? When can we schedule a demo call?'
+            },
+            {
+                sender: 'Support Team',
+                date: 'Jun 27, 2025, 3:15 PM', 
+                body: 'Thank you for reaching out! I\'ll be happy to help you with the integration setup. Here are the step-by-step instructions: 1) First, create an account 2) Generate your API key 3) Configure the webhook endpoints. Regarding pricing, we have three tiers: Basic ($29/month), Pro ($99/month), and Enterprise (custom pricing). I can schedule a demo call for tomorrow at 2 PM if that works for you.'
+            },
+            {
+                sender: 'John Customer',
+                date: 'Jun 27, 2025, 4:00 PM',
+                body: 'Perfect! Yes, tomorrow at 2 PM works great. One more question - do you support SSO authentication? And what\'s the maximum API rate limit for the Pro plan?'
+            }
+        ];
+
+        try {
+            const summary = await this.generateSummary(mockEmailThread);
+            this.displaySummary(summary);
+            console.log('Manual test completed successfully!');
+        } catch (error) {
+            console.error('Manual test failed:', error);
+            this.showError(`Manual test failed: ${error.message}`);
+        }
     }
 }
 
