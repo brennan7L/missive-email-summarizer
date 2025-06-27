@@ -6,9 +6,9 @@
 class EmailSummarizer {
     constructor() {
         console.log('EmailSummarizer: Starting initialization...');
-        this.openaiApiKey = this.extractApiKey();
         this.currentConversationId = null;
         this.initializeElements();
+        this.openaiApiKey = this.extractApiKey();
         this.initializeMissiveIntegration();
         console.log('EmailSummarizer: Initialization complete');
     }
