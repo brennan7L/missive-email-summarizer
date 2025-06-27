@@ -20,10 +20,10 @@
   ],
   "author": "Your Name",
   "license": "MIT",
-  "homepage": "https://github.com/yourusername/missive-email-summarizer",
+  "homepage": "https://github.com/brennan7L/missive-email-summarizer.git",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/missive-email-summarizer.git"
+    "url": "https://github.com/brennan7L/missive-email-summarizer.git"
   },
   "engines": {
     "node": ">=14.0.0"

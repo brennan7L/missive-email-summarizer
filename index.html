@@ -23,6 +23,9 @@
             <!-- Empty State -->
             <div id="empty-state" class="empty-state">
                 <p>Select a conversation to see AI-powered summary</p>
+                <button id="test-button" class="test-button" onclick="emailSummarizer.testManualSummary()">
+                    Test Integration (Manual Demo)
+                </button>
             </div>
             
             <!-- Error State -->
@@ -39,6 +42,8 @@
         </div>
     </div>
 
+    <!-- Include Missive JavaScript API -->
+    <script src="https://integrations.missiveapp.com/missive.js"></script>
     <script src="script.js"></script>
 </body>
 </html> 

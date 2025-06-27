@@ -9,69 +9,94 @@ class EmailSummarizer {
         this.currentConversationId = null;
         this.initializeElements();
         this.openaiApiKey = this.extractApiKey();
-        this.setupMessageListener();
-        this.initializeMissiveIntegration();
+        this.initializeMissiveAPI();
         console.log('EmailSummarizer: Initialization complete');
     }
 
     /**
-     * Set up message listener for parent window communication
+     * Initialize Missive API integration using the official JavaScript API
      */
-    setupMessageListener() {
-        console.log('Setting up message listener for parent communication...');
+    initializeMissiveAPI() {
+        console.log('Initializing Missive API integration...');
         
-        window.addEventListener('message', (event) => {
-            console.log('Received message from parent:', event);
-            console.log('Message origin:', event.origin);
-            console.log('Message data:', event.data);
-            
-            // Only accept messages from Missive
-            if (event.origin !== 'https://mail.missiveapp.com') {
-                console.log('Ignoring message from non-Missive origin:', event.origin);
-                return;
-            }
-            
-            // Handle different message types from Missive
-            if (event.data && typeof event.data === 'object') {
-                this.handleMissiveMessage(event.data);
-            }
+        // Check if Missive API is available
+        if (typeof Missive === 'undefined') {
+            console.error('Missive API not available - make sure missive.js is loaded');
+            this.showError('Missive API not available. Please ensure this integration is running inside Missive.');
+            return;
+        }
+
+        // Set up conversation change listener
+        Missive.on('change:conversations', (conversationIds) => {
+            console.log('Conversations changed:', conversationIds);
+            this.handleConversationChange(conversationIds);
         });
+
+        console.log('Missive API integration initialized successfully');
+        this.showEmptyState();
     }
 
     /**
-     * Handle messages from Missive parent window
+     * Handle conversation selection changes using Missive API
      */
-    handleMissiveMessage(data) {
-        console.log('Handling Missive message:', data);
-        
-        switch (data.type) {
-            case 'conversations_changed':
-                console.log('Conversations changed:', data.conversations);
-                this.handleConversationChange(data.conversations);
-                break;
-                
-            case 'current_conversations':
-                console.log('Current conversations:', data.conversations);
-                this.handleConversationChange(data.conversations);
-                break;
-                
-            case 'conversation_data':
-                console.log('Received conversation data:', data.conversation);
-                this.processConversationData(data.conversation);
-                break;
-                
-            default:
-                console.log('Unknown message type:', data.type);
+    async handleConversationChange(conversationIds) {
+        try {
+            console.log('handleConversationChange called with:', conversationIds);
+            
+            // Check if exactly one conversation is selected
+            if (!conversationIds || conversationIds.length === 0) {
+                console.log('No conversations selected, showing empty state');
+                this.showEmptyState();
+                return;
+            }
+
+            if (conversationIds.length > 1) {
+                console.log('Multiple conversations selected:', conversationIds.length);
+                this.showError('Please select only one conversation at a time.');
+                return;
+            }
+
+            const conversationId = conversationIds[0];
+            console.log('Processing conversation ID:', conversationId);
+            
+            // Avoid re-processing the same conversation
+            if (this.currentConversationId === conversationId) {
+                console.log('Same conversation already processed, skipping');
+                return;
+            }
+
+            this.currentConversationId = conversationId;
+            
+            // Show loading state
+            this.showLoading();
+            
+            // Fetch conversation data using Missive API
+            console.log('Fetching conversation data from Missive API...');
+            const conversations = await Missive.fetchConversations([conversationId]);
+            
+            if (!conversations || conversations.length === 0) {
+                this.showError('No conversation data found.');
+                return;
+            }
+
+            const conversation = conversations[0];
+            console.log('Retrieved conversation data:', conversation);
+            
+            // Process the conversation
+            await this.processConversation(conversation);
+
+        } catch (error) {
+            console.error('Error handling conversation change:', error);
+            this.showError('Failed to process conversation selection.');
         }
     }
 
     /**
-     * Process conversation data received from Missive
+     * Process the fetched conversation data
      */
-    async processConversationData(conversation) {
+    async processConversation(conversation) {
         try {
             console.log('Processing conversation data...');
-            this.showLoading();
 
             const emailThread = this.extractEmailThread(conversation);
             
@@ -85,7 +110,7 @@ class EmailSummarizer {
             this.displaySummary(summary);
 
         } catch (error) {
-            console.error('Error processing conversation data:', error);
+            console.error('Error processing conversation:', error);
             this.showError('Failed to analyze conversation. Please try again.');
         }
     }
@@ -121,128 +146,28 @@ class EmailSummarizer {
         };
     }
 
-    /**
-     * Initialize Missive API integration
-     */
-    initializeMissiveIntegration() {
-        console.log('Initializing Missive integration via postMessage...');
-        
-        // Send ready message to parent window
-        this.sendToParent({ type: 'integration_ready' });
-        
-        // Request current conversations
-        this.sendToParent({ type: 'get_conversations' });
-        
-        console.log('Missive integration initialized via postMessage');
-        this.showEmptyState();
-    }
-
-    /**
-     * Send message to parent window (Missive)
-     */
-    sendToParent(message) {
-        try {
-            console.log('Sending to parent:', message);
-            window.parent.postMessage(message, 'https://mail.missiveapp.com');
-        } catch (error) {
-            console.error('Failed to send message to parent:', error);
-        }
-    }
-
 
 
     /**
-     * Handle conversation selection changes
-     */
-    async handleConversationChange(conversations) {
-        try {
-            console.log('handleConversationChange called with:', conversations);
-            
-            // Check if exactly one conversation is selected
-            if (!conversations || conversations.length === 0) {
-                console.log('No conversations selected, showing empty state');
-                this.showEmptyState();
-                return;
-            }
-
-            if (conversations.length > 1) {
-                console.log('Multiple conversations selected:', conversations.length);
-                this.showError('Please select only one conversation at a time.');
-                return;
-            }
-
-            const conversationId = conversations[0];
-            console.log('Processing conversation ID:', conversationId);
-            
-            // Avoid re-processing the same conversation
-            if (this.currentConversationId === conversationId) {
-                console.log('Same conversation already processed, skipping');
-                return;
-            }
-
-            this.currentConversationId = conversationId;
-            console.log('Requesting conversation data from Missive...');
-            
-            // Request conversation data from parent window
-            this.sendToParent({ 
-                type: 'get_conversation_data', 
-                conversation_id: conversationId 
-            });
-
-        } catch (error) {
-            console.error('Error handling conversation change:', error);
-            this.showError('Failed to process conversation selection.');
-        }
-    }
-
-    /**
-     * Process the selected conversation
-     */
-    async processConversation(conversationId) {
-        try {
-            this.showLoading();
-
-            // Fetch conversation data from Missive
-            const conversations = await Missive.fetchConversations([conversationId]);
-            
-            if (!conversations || conversations.length === 0) {
-                this.showError('No conversation data found.');
-                return;
-            }
-
-            const conversation = conversations[0];
-            const emailThread = this.extractEmailThread(conversation);
-            
-            if (!emailThread || emailThread.length === 0) {
-                this.showError('No email messages found in this conversation.');
-                return;
-            }
-
-            // Generate summary using OpenAI
-            const summary = await this.generateSummary(emailThread);
-            this.displaySummary(summary);
-
-        } catch (error) {
-            console.error('Error processing conversation:', error);
-            this.showError('Failed to analyze conversation. Please try again.');
-        }
-    }
-
-    /**
-     * Extract email thread from conversation data
+     * Extract email thread from conversation data (Missive API format)
      */
     extractEmailThread(conversation) {
         try {
+            console.log('Extracting email thread from conversation:', conversation);
+            
             const messages = conversation.messages || [];
             
-            // Sort messages by date (newest first for priority, but we'll reverse for context)
-            const sortedMessages = messages
-                .filter(msg => msg.body && msg.body.trim()) // Only messages with content
-                .sort((a, b) => new Date(a.created_at) - new Date(b.created_at)); // Oldest first for context
+            // Filter out messages without content and sort by date (oldest first for context)
+            const emailMessages = messages
+                .filter(msg => msg.body && msg.body.trim() && msg.from_field) // Only email messages with content and sender
+                .sort((a, b) => (a.delivered_at || 0) - (b.delivered_at || 0)); // Oldest first for context
 
-            return sortedMessages.map(msg => ({
+            console.log(`Found ${emailMessages.length} email messages to process`);
+
+            return emailMessages.map(msg => ({
                 sender: this.extractSenderName(msg),
-                date: this.formatDate(msg.created_at),
+                date: this.formatDate(msg.delivered_at),
+                subject: msg.subject || 'No Subject',
                 body: this.cleanEmailBody(msg.body)
             }));
 
@@ -263,11 +188,12 @@ class EmailSummarizer {
     }
 
     /**
-     * Format date for display
+     * Format date for display (handles Missive Unix timestamps)
      */
-    formatDate(dateString) {
+    formatDate(timestamp) {
         try {
-            const date = new Date(dateString);
+            // Missive uses Unix timestamps in seconds
+            const date = new Date(timestamp * 1000);
             return date.toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'short',
@@ -275,7 +201,8 @@ class EmailSummarizer {
                 hour: '2-digit',
                 minute: '2-digit'
             });
-        } catch {
+        } catch (error) {
+            console.error('Error formatting date:', error, 'Timestamp:', timestamp);
             return 'Unknown Date';
         }
     }

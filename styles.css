@@ -119,7 +119,8 @@
 .section-content li {
     margin-bottom: 8px;
     line-height: 1.5;
-    color: var(--text-color, #333);
+    color: var(--text-color, #ffffff);
+    font-weight: 400;
 }
 
 /* Responsive Design */
@@ -142,10 +143,54 @@
     }
 }
 
-/* Dark theme support (if Missive provides dark theme variables) */
-@media (prefers-color-scheme: dark) {
-    .integration-container {
-        background-color: var(--background-color-dark, #1a1a1a);
-        color: var(--text-color-dark, #ffffff);
-    }
+/* Dark theme support and Missive integration */
+.integration-container {
+    background-color: transparent;
+    color: #ffffff;
+}
+
+.integration-title {
+    color: #ffffff;
+}
+
+.section-header {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.section-header:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+.section-content {
+    background-color: rgba(0, 0, 0, 0.3);
+    color: #ffffff;
+}
+
+.empty-state, 
+.error-state {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.error-state {
+    color: #ff6b6b;
+}
+
+/* Test Button */
+.test-button {
+    margin-top: 15px;
+    padding: 8px 16px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+
+.test-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
 } 
