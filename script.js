@@ -641,25 +641,31 @@ ${threadText}`;
             const cleanTaskText = assigneeName ? taskText : this.parseTaskAssignee(taskText).cleanTaskText;
             console.log('✂️ Clean task text:', cleanTaskText);
             
-            // Create the task using Missive API
+            // IMPORTANT: The Missive JavaScript API createTask() method doesn't support 
+            // direct task assignment. Tasks are created unassigned. We'll assign the 
+            // conversation to the user instead so they can see and manage the task.
+            
+            // Create the task using Missive API (this creates an unassigned task)
             console.log('📋 Creating task in Missive...');
             await Missive.createTask(cleanTaskText, false);
             console.log('✅ Task created successfully in Missive');
             
-            // If we found an assignee, try to assign the conversation to that user
-            if (assigneeName) {
-                console.log('🎯 Attempting to assign conversation to:', assigneeName);
+            // Always try to assign the conversation to you (the current user) so you can see the task
+            console.log('🎯 Assigning conversation to current user...');
+            await this.assignConversationToCurrentUser();
+            
+            // If a specific assignee was detected, also try to assign to them
+            if (assigneeName && assigneeName.toLowerCase() !== 'you' && assigneeName.toLowerCase() !== 'me') {
+                console.log('🎯 Also attempting to assign conversation to:', assigneeName);
                 await this.assignTaskToUser(assigneeName);
-            } else {
-                console.log('⚠️ No assignee found - task created but not assigned');
             }
             
             // Show success state
-            const successText = assigneeName ? `✓ Added to ${assigneeName}!` : '✓ Added!';
+            const successText = assigneeName ? `✓ Added & assigned!` : '✓ Added & assigned to you!';
             buttonElement.textContent = successText;
             buttonElement.classList.add('task-created');
             
-            console.log('🎉 Task creation complete:', cleanTaskText, assigneeName ? `(assigned to ${assigneeName})` : '');
+            console.log('🎉 Task creation complete:', cleanTaskText);
             console.log('🎯 === END TASK DEBUG ===');
 
         } catch (error) {
@@ -676,6 +682,28 @@ ${threadText}`;
                 buttonElement.textContent = '✓ Add Task';
                 buttonElement.classList.remove('task-error');
             }, 3000);
+        }
+    }
+
+    /**
+     * Assign the current conversation to the current user (you)
+     */
+    async assignConversationToCurrentUser() {
+        try {
+            // Get the current user's information
+            const users = await Missive.fetchUsers();
+            const currentUser = users.find(user => user.me === true);
+            
+            if (currentUser) {
+                console.log('✅ Found current user:', currentUser.display_name, 'ID:', currentUser.id);
+                await Missive.addAssignees([currentUser.id]);
+                console.log('✅ Successfully assigned conversation to current user');
+            } else {
+                console.log('⚠️ Could not find current user information');
+            }
+        } catch (error) {
+            console.error('❌ Failed to assign conversation to current user:', error);
+            // Don't throw error here - task was still created successfully
         }
     }
 
