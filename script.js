@@ -7,6 +7,7 @@ class EmailSummarizer {
     constructor() {
         console.log('EmailSummarizer: Starting initialization...');
         this.currentConversationId = null;
+        this.currentConversation = null;
         this.initializeElements();
         this.openaiApiKey = this.extractApiKey();
         this.initializeMissiveAPI();
@@ -46,6 +47,8 @@ class EmailSummarizer {
             // Check if exactly one conversation is selected
             if (!conversationIds || conversationIds.length === 0) {
                 console.log('No conversations selected, showing empty state');
+                this.currentConversation = null;
+                this.currentConversationId = null;
                 this.showEmptyState();
                 return;
             }
@@ -61,13 +64,14 @@ class EmailSummarizer {
             
             // Avoid re-processing the same conversation
             if (this.currentConversationId === conversationId) {
-                console.log('Same conversation already processed, skipping');
+                console.log('Same conversation already loaded, showing ready state');
+                this.showReadyToSummarize();
                 return;
             }
 
             this.currentConversationId = conversationId;
             
-            // Show loading state
+            // Show loading state while fetching conversation data
             this.showLoading();
             
             // Fetch conversation data using Missive API
@@ -82,8 +86,9 @@ class EmailSummarizer {
             const conversation = conversations[0];
             console.log('Retrieved conversation data:', conversation);
             
-            // Process the conversation
-            await this.processConversation(conversation);
+            // Store conversation data and show ready state
+            this.currentConversation = conversation;
+            this.showReadyToSummarize();
 
         } catch (error) {
             console.error('Error handling conversation change:', error);
@@ -139,6 +144,7 @@ class EmailSummarizer {
         this.elements = {
             loading: document.getElementById('loading'),
             emptyState: document.getElementById('empty-state'),
+            readyState: document.getElementById('ready-state'),
             errorState: document.getElementById('error-state'),
             errorMessage: document.getElementById('error-message'),
             summaryContent: document.getElementById('summary-content'),
@@ -382,7 +388,12 @@ ${threadText}`;
         headerDiv.className = `section-header ${isExpanded ? '' : 'collapsed'}`;
         headerDiv.innerHTML = `
             <span>${title}</span>
-            <span class="toggle-icon">▼</span>
+            <div class="header-buttons">
+                <button class="comment-section-btn" title="Post section as comment" data-section-title="${this.escapeHtml(title)}" data-section-content="${this.escapeHtml(content)}">
+                    💬 Post as Comment
+                </button>
+                <span class="toggle-icon">▼</span>
+            </div>
         `;
 
         const contentDiv = document.createElement('div');
@@ -398,17 +409,26 @@ ${threadText}`;
             this.addTaskButtonListeners(contentDiv);
         }
 
-        // Add click handler for collapse/expand
-        headerDiv.addEventListener('click', () => {
-            const isCurrentlyCollapsed = headerDiv.classList.contains('collapsed');
-            
-            if (isCurrentlyCollapsed) {
-                headerDiv.classList.remove('collapsed');
-                contentDiv.classList.remove('collapsed');
-            } else {
-                headerDiv.classList.add('collapsed');
-                contentDiv.classList.add('collapsed');
-            }
+        // Add comment button event listener
+        this.addCommentButtonListener(headerDiv);
+
+        // Add click handler for collapse/expand (only on the title, not buttons)
+        const titleSpan = headerDiv.querySelector('span:first-child');
+        const toggleIcon = headerDiv.querySelector('.toggle-icon');
+        
+        [titleSpan, toggleIcon].forEach(element => {
+            element.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent button clicks
+                const isCurrentlyCollapsed = headerDiv.classList.contains('collapsed');
+                
+                if (isCurrentlyCollapsed) {
+                    headerDiv.classList.remove('collapsed');
+                    contentDiv.classList.remove('collapsed');
+                } else {
+                    headerDiv.classList.add('collapsed');
+                    contentDiv.classList.add('collapsed');
+                }
+            });
         });
 
         sectionDiv.appendChild(headerDiv);
@@ -507,6 +527,73 @@ ${threadText}`;
     }
 
     /**
+     * Add event listener for comment section buttons
+     */
+    addCommentButtonListener(headerDiv) {
+        const commentButton = headerDiv.querySelector('.comment-section-btn');
+        
+        commentButton.addEventListener('click', async (e) => {
+            e.stopPropagation(); // Prevent section collapse
+            
+            const sectionTitle = commentButton.getAttribute('data-section-title');
+            const sectionContent = commentButton.getAttribute('data-section-content');
+            
+            await this.postSectionAsComment(sectionTitle, sectionContent, commentButton);
+        });
+    }
+
+    /**
+     * Post a section as a comment in the Missive conversation
+     */
+    async postSectionAsComment(title, content, buttonElement) {
+        try {
+            // Check if Missive API is available
+            if (typeof Missive === 'undefined') {
+                throw new Error('Missive API not available');
+            }
+
+            console.log('Posting section as comment:', title);
+            
+            // Disable button and show loading
+            buttonElement.disabled = true;
+            buttonElement.textContent = '💬 Posting...';
+            
+            // Format the comment with title and content
+            const commentBody = `**${title}**\n\n${content}`;
+            
+            // Post the comment using Missive API
+            await Missive.comment(commentBody);
+            
+            // Show success state
+            buttonElement.textContent = '✓ Posted!';
+            buttonElement.classList.add('comment-posted');
+            
+            console.log('Comment posted successfully:', title);
+            
+            // Reset button after a delay
+            setTimeout(() => {
+                buttonElement.disabled = false;
+                buttonElement.textContent = '💬 Post as Comment';
+                buttonElement.classList.remove('comment-posted');
+            }, 2000);
+
+        } catch (error) {
+            console.error('Failed to post comment:', error);
+            
+            // Show error state
+            buttonElement.textContent = '✗ Failed';
+            buttonElement.classList.add('comment-error');
+            
+            // Reset button after a delay
+            setTimeout(() => {
+                buttonElement.disabled = false;
+                buttonElement.textContent = '💬 Post as Comment';
+                buttonElement.classList.remove('comment-error');
+            }, 3000);
+        }
+    }
+
+    /**
      * Escape HTML characters
      */
     escapeHtml(text) {
@@ -530,6 +617,7 @@ ${threadText}`;
         this.hideAllStates();
         this.elements.emptyState.style.display = 'block';
         this.currentConversationId = null;
+        this.currentConversation = null;
         
         // Add manual test option
         if (!this.elements.emptyState.querySelector('.manual-test-button')) {
@@ -550,6 +638,32 @@ ${threadText}`;
             });
             
             this.elements.emptyState.appendChild(testButton);
+        }
+    }
+
+    /**
+     * Show ready to summarize state
+     */
+    showReadyToSummarize() {
+        this.hideAllStates();
+        this.elements.readyState.style.display = 'block';
+    }
+
+    /**
+     * Summarize the currently selected conversation
+     */
+    async summarizeCurrentConversation() {
+        if (!this.currentConversation) {
+            this.showError('No conversation selected to summarize.');
+            return;
+        }
+
+        try {
+            console.log('Manual summarization triggered');
+            await this.processConversation(this.currentConversation);
+        } catch (error) {
+            console.error('Error during manual summarization:', error);
+            this.showError('Failed to summarize conversation. Please try again.');
         }
     }
 
@@ -576,6 +690,7 @@ ${threadText}`;
     hideAllStates() {
         this.elements.loading.style.display = 'none';
         this.elements.emptyState.style.display = 'none';
+        this.elements.readyState.style.display = 'none';
         this.elements.errorState.style.display = 'none';
         this.elements.summaryContent.style.display = 'none';
     }
@@ -623,8 +738,12 @@ ${threadText}`;
 }
 
 // Initialize the integration when the page loads
+let emailSummarizer;
 document.addEventListener('DOMContentLoaded', () => {
-    new EmailSummarizer();
+    emailSummarizer = new EmailSummarizer();
+    
+    // Make it globally available for onclick handlers
+    window.emailSummarizer = emailSummarizer;
 });
 
 // Handle errors globally

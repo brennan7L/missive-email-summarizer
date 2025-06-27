@@ -27,6 +27,17 @@
                     Test Integration (Manual Demo)
                 </button>
             </div>
+
+            <!-- Ready to Summarize State -->
+            <div id="ready-state" class="ready-state" style="display: none;">
+                <div class="ready-content">
+                    <h3>📧 Conversation Ready</h3>
+                    <p>Click below to analyze this email thread with AI</p>
+                    <button id="summarize-button" class="summarize-button" onclick="emailSummarizer.summarizeCurrentConversation()">
+                        🧙‍♂️ Summarize This
+                    </button>
+                </div>
+            </div>
             
             <!-- Error State -->
             <div id="error-state" class="error-state" style="display: none;">
