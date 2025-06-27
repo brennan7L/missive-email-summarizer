@@ -52,21 +52,42 @@ class EmailSummarizer {
         console.log('typeof Missive:', typeof Missive);
         console.log('window.Missive:', window.Missive);
         
-        if (typeof Missive === 'undefined') {
-            console.error('Missive API not available');
-            this.showError('Missive API not available. Make sure this is running within a Missive iFrame.');
+        // Try to wait for Missive API to load with retries
+        this.waitForMissiveAPI(0);
+    }
+
+    /**
+     * Wait for Missive API to become available with retry logic
+     */
+    waitForMissiveAPI(attempt = 0) {
+        const maxAttempts = 10;
+        const retryDelay = 500; // 500ms between attempts
+        
+        console.log(`Attempt ${attempt + 1}/${maxAttempts} - Checking for Missive API...`);
+        
+        if (typeof Missive !== 'undefined' && Missive.on) {
+            console.log('Missive API found, setting up listeners...');
+            
+            // Listen for conversation changes
+            Missive.on('change:conversations', (conversations) => {
+                console.log('Conversation change detected:', conversations);
+                this.handleConversationChange(conversations);
+            });
+
+            console.log('Missive integration initialized successfully');
+            
+            // Show success message
+            this.showEmptyState();
             return;
         }
-
-        console.log('Missive API found, setting up listeners...');
         
-        // Listen for conversation changes
-        Missive.on('change:conversations', (conversations) => {
-            console.log('Conversation change detected:', conversations);
-            this.handleConversationChange(conversations);
-        });
-
-        console.log('Missive integration initialized successfully');
+        if (attempt < maxAttempts) {
+            console.log(`Missive API not ready yet, retrying in ${retryDelay}ms...`);
+            setTimeout(() => this.waitForMissiveAPI(attempt + 1), retryDelay);
+        } else {
+            console.error('Missive API not available after maximum attempts');
+            this.showError('Missive API not available. Make sure this is running within a Missive iFrame.');
+        }
     }
 
     /**
