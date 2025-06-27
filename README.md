@@ -146,6 +146,42 @@ Add `?debug=true` to your URL to enable console logging:
 https://your-app.vercel.app?openai_key=your_key&debug=true
 ```
 
+## 🔧 Debugging User Matching
+
+If tasks aren't being assigned to the right team members, you can debug the user matching system:
+
+### Check Available Users
+Open your browser's Developer Console (F12) and run:
+```javascript
+debugMissiveUsers()
+```
+
+This will show a table of all available Missive users with their:
+- ID
+- Display Name
+- Full Name (First + Last)
+- First Name
+- Last Name  
+- Email
+
+### User Matching Logic
+The integration matches names using these patterns (case-insensitive):
+- Display name contains the assignee name
+- Full name contains the assignee name
+- First name exactly matches the assignee name
+
+### Example Output
+```
+🔍 Fetching Missive users...
+📋 Found 5 Missive users:
+┌─────────┬─────┬──────────────┬─────────────────┬────────────┬───────────┬──────────────────────┐
+│ (index) │ ID  │ Display Name │   Full Name     │ First Name │ Last Name │        Email         │
+├─────────┼─────┼──────────────┼─────────────────┼────────────┼───────────┼──────────────────────┤
+│    0    │ 123 │ 'John Smith' │ 'John Smith'    │   'John'   │  'Smith'  │ 'john@company.com'   │
+│    1    │ 456 │ 'Jane Doe'   │ 'Jane Doe'      │   'Jane'   │   'Doe'   │ 'jane@company.com'   │
+└─────────┴─────┴──────────────┴─────────────────┴────────────┴───────────┴──────────────────────┘
+```
+
 ## Development
 
 ### Local Development
