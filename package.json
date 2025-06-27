@@ -1,0 +1,33 @@
+{
+  "name": "missive-email-summarizer",
+  "version": "1.0.0",
+  "description": "AI-powered email thread summarizer integration for Missive",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "dev": "python -m http.server 8000",
+    "build": "echo 'Static files - no build required'",
+    "test": "echo 'No tests configured'"
+  },
+  "keywords": [
+    "missive",
+    "email",
+    "summarizer",
+    "ai",
+    "openai",
+    "iframe",
+    "integration"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "homepage": "https://github.com/yourusername/missive-email-summarizer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/missive-email-summarizer.git"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "devDependencies": {},
+  "dependencies": {}
+} 

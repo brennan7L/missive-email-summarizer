@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Thread Summarizer</title>
+    <link rel="stylesheet" href="https://integrations.missiveapp.com/missive.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="integration-container">
+        <div class="header">
+            <h2 class="integration-title">Email Thread Summary</h2>
+        </div>
+        
+        <div class="content">
+            <!-- Loading State -->
+            <div id="loading" class="loading-container" style="display: none;">
+                <div class="spinner"></div>
+                <p>Analyzing conversation...</p>
+            </div>
+            
+            <!-- Empty State -->
+            <div id="empty-state" class="empty-state">
+                <p>Select a conversation to see AI-powered summary</p>
+            </div>
+            
+            <!-- Error State -->
+            <div id="error-state" class="error-state" style="display: none;">
+                <p id="error-message">Something went wrong. Please try again.</p>
+            </div>
+            
+            <!-- Summary Content -->
+            <div id="summary-content" class="summary-content" style="display: none;">
+                <div class="summary-sections">
+                    <!-- Dynamic content will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 
