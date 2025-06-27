@@ -25,14 +25,69 @@ class EmailSummarizer {
             console.log('Message origin:', event.origin);
             console.log('Message data:', event.data);
             
-            // Check if this is a Missive API message
+            // Only accept messages from Missive
+            if (event.origin !== 'https://mail.missiveapp.com') {
+                console.log('Ignoring message from non-Missive origin:', event.origin);
+                return;
+            }
+            
+            // Handle different message types from Missive
             if (event.data && typeof event.data === 'object') {
-                if (event.data.type === 'missive-api') {
-                    console.log('Received Missive API message!');
-                    // Handle Missive API messages here
-                }
+                this.handleMissiveMessage(event.data);
             }
         });
+    }
+
+    /**
+     * Handle messages from Missive parent window
+     */
+    handleMissiveMessage(data) {
+        console.log('Handling Missive message:', data);
+        
+        switch (data.type) {
+            case 'conversations_changed':
+                console.log('Conversations changed:', data.conversations);
+                this.handleConversationChange(data.conversations);
+                break;
+                
+            case 'current_conversations':
+                console.log('Current conversations:', data.conversations);
+                this.handleConversationChange(data.conversations);
+                break;
+                
+            case 'conversation_data':
+                console.log('Received conversation data:', data.conversation);
+                this.processConversationData(data.conversation);
+                break;
+                
+            default:
+                console.log('Unknown message type:', data.type);
+        }
+    }
+
+    /**
+     * Process conversation data received from Missive
+     */
+    async processConversationData(conversation) {
+        try {
+            console.log('Processing conversation data...');
+            this.showLoading();
+
+            const emailThread = this.extractEmailThread(conversation);
+            
+            if (!emailThread || emailThread.length === 0) {
+                this.showError('No email messages found in this conversation.');
+                return;
+            }
+
+            // Generate summary using OpenAI
+            const summary = await this.generateSummary(emailThread);
+            this.displaySummary(summary);
+
+        } catch (error) {
+            console.error('Error processing conversation data:', error);
+            this.showError('Failed to analyze conversation. Please try again.');
+        }
     }
 
     /**
@@ -70,94 +125,31 @@ class EmailSummarizer {
      * Initialize Missive API integration
      */
     initializeMissiveIntegration() {
-        console.log('Checking for Missive API...');
-        console.log('typeof Missive:', typeof Missive);
-        console.log('window.Missive:', window.Missive);
+        console.log('Initializing Missive integration via postMessage...');
         
-        // Try to wait for Missive API to load with retries
-        this.waitForMissiveAPI(0);
+        // Send ready message to parent window
+        this.sendToParent({ type: 'integration_ready' });
+        
+        // Request current conversations
+        this.sendToParent({ type: 'get_conversations' });
+        
+        console.log('Missive integration initialized via postMessage');
+        this.showEmptyState();
     }
 
     /**
-     * Wait for Missive API to become available with retry logic
+     * Send message to parent window (Missive)
      */
-    waitForMissiveAPI(attempt = 0) {
-        const maxAttempts = 15;
-        const retryDelay = 1000; // 1 second between attempts
-        
-        console.log(`Attempt ${attempt + 1}/${maxAttempts} - Checking for Missive API...`);
-        
-        // Comprehensive debugging of the window object
-        console.log('=== IFRAME ENVIRONMENT DEBUG ===');
-        console.log('window.location:', window.location.href);
-        console.log('window.parent:', window.parent);
-        console.log('window.top:', window.top);
-        console.log('document.referrer:', document.referrer);
-        console.log('typeof Missive:', typeof Missive);
-        console.log('window.Missive:', window.Missive);
-        console.log('window.parent.Missive:', window.parent?.Missive);
-        console.log('window.top.Missive:', window.top?.Missive);
-        
-        // Check all possible window properties that might contain Missive
-        console.log('Window properties containing "missive" or "Missive":');
-        Object.keys(window).forEach(key => {
-            if (key.toLowerCase().includes('missive')) {
-                console.log(`  window.${key}:`, window[key]);
-            }
-        });
-        
-        // Check if parent has postMessage capabilities
-        console.log('Can postMessage to parent:', typeof window.parent.postMessage === 'function');
-        
-        // Try different ways to access Missive API
-        const possibleMissive = window.Missive || window.parent?.Missive || window.top?.Missive;
-        
-        if (possibleMissive && typeof possibleMissive.on === 'function') {
-            console.log('Missive API found, setting up listeners...');
-            
-            // Listen for conversation changes
-            possibleMissive.on('change:conversations', (conversations) => {
-                console.log('Conversation change detected:', conversations);
-                this.handleConversationChange(conversations);
-            });
-
-            console.log('Missive integration initialized successfully');
-            
-            // Show success message
-            this.showEmptyState();
-            return;
-        }
-        
-        // Try alternative: Check if we can communicate with parent via postMessage
-        if (attempt === 0) {
-            console.log('Trying to communicate with parent via postMessage...');
-            try {
-                window.parent.postMessage({ type: 'missive-integration-ready' }, '*');
-            } catch (e) {
-                console.log('PostMessage failed:', e);
-            }
-        }
-        
-        if (attempt < maxAttempts) {
-            console.log(`Missive API not ready yet, retrying in ${retryDelay}ms...`);
-            setTimeout(() => this.waitForMissiveAPI(attempt + 1), retryDelay);
-        } else {
-            console.error('Missive API not available after maximum attempts');
-            console.log('=== FINAL DEBUG INFO ===');
-            console.log('This might not be running in a proper Missive iframe context');
-            console.log('Or the Missive API structure has changed');
-            
-            // Show error but also allow manual testing
-            this.showError('Missive API not available. Make sure this is running within a Missive iFrame. (Click here to test manually)');
-            
-            // Add click handler for manual testing
-            this.elements.errorState.style.cursor = 'pointer';
-            this.elements.errorState.addEventListener('click', () => {
-                console.log('Manual test triggered');
-                this.testManualSummary();
-            });
+    sendToParent(message) {
+        try {
+            console.log('Sending to parent:', message);
+            window.parent.postMessage(message, 'https://mail.missiveapp.com');
+        } catch (error) {
+            console.error('Failed to send message to parent:', error);
         }
     }
+
+
 
     /**
      * Handle conversation selection changes
@@ -189,8 +181,13 @@ class EmailSummarizer {
             }
 
             this.currentConversationId = conversationId;
-            console.log('Starting conversation processing...');
-            await this.processConversation(conversationId);
+            console.log('Requesting conversation data from Missive...');
+            
+            // Request conversation data from parent window
+            this.sendToParent({ 
+                type: 'get_conversation_data', 
+                conversation_id: conversationId 
+            });
 
         } catch (error) {
             console.error('Error handling conversation change:', error);
@@ -531,6 +528,27 @@ ${threadText}`;
         this.hideAllStates();
         this.elements.emptyState.style.display = 'block';
         this.currentConversationId = null;
+        
+        // Add manual test option
+        if (!this.elements.emptyState.querySelector('.manual-test-button')) {
+            const testButton = document.createElement('button');
+            testButton.className = 'manual-test-button';
+            testButton.textContent = 'Test Integration (Manual Demo)';
+            testButton.style.marginTop = '10px';
+            testButton.style.padding = '8px 16px';
+            testButton.style.backgroundColor = '#007bff';
+            testButton.style.color = 'white';
+            testButton.style.border = 'none';
+            testButton.style.borderRadius = '4px';
+            testButton.style.cursor = 'pointer';
+            
+            testButton.addEventListener('click', () => {
+                console.log('Manual test triggered from empty state');
+                this.testManualSummary();
+            });
+            
+            this.elements.emptyState.appendChild(testButton);
+        }
     }
 
     /**
