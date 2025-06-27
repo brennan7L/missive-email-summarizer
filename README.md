@@ -156,6 +156,14 @@ Open your browser's Developer Console (F12) and run:
 debugMissiveUsers()
 ```
 
+### Test Name Matching
+Test if a specific name will be matched correctly:
+```javascript
+testUserMapping("Brennan O'Dowd")  // Test full name
+testUserMapping("Brennan")         // Test first name  
+testUserMapping("rusty nelson")    // Test lowercase
+```
+
 This will show a table of all available Missive users with their:
 - ID
 - Display Name

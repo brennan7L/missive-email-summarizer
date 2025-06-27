@@ -1131,6 +1131,20 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Expose debug functions globally
     window.debugMissiveUsers = () => emailSummarizer.debugShowMissiveUsers();
+    window.testUserMapping = (name) => {
+        const mapping = emailSummarizer.get7LUserMapping();
+        const normalizedName = name.toLowerCase().trim();
+        const userId = mapping[normalizedName];
+        
+        if (userId) {
+            console.log(`✅ Found "${name}" -> ID: ${userId}`);
+            return { found: true, userId, name };
+        } else {
+            console.log(`❌ "${name}" not found in mapping`);
+            console.log('💡 Available names:', Object.keys(mapping).join(', '));
+            return { found: false, name };
+        }
+    };
 });
 
 // Handle errors globally
