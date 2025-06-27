@@ -1,0 +1,13 @@
+{
+  "buildCommand": "echo 'No build required for static files'",
+  "outputDirectory": ".",
+  "installCommand": "echo 'No dependencies to install'",
+  "framework": null,
+  "functions": {},
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ]
+} 
