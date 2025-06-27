@@ -5,10 +5,12 @@
 
 class EmailSummarizer {
     constructor() {
+        console.log('EmailSummarizer: Starting initialization...');
         this.openaiApiKey = this.extractApiKey();
         this.currentConversationId = null;
         this.initializeElements();
         this.initializeMissiveIntegration();
+        console.log('EmailSummarizer: Initialization complete');
     }
 
     /**
@@ -17,6 +19,8 @@ class EmailSummarizer {
     extractApiKey() {
         const urlParams = new URLSearchParams(window.location.search);
         const apiKey = urlParams.get('openai_key') || urlParams.get('api_key');
+        
+        console.log('API Key check:', apiKey ? 'Found API key' : 'No API key found');
         
         if (!apiKey) {
             this.showError('OpenAI API key not found in URL parameters. Please add ?openai_key=your_key_here to the URL.');
@@ -44,17 +48,25 @@ class EmailSummarizer {
      * Initialize Missive API integration
      */
     initializeMissiveIntegration() {
+        console.log('Checking for Missive API...');
+        console.log('typeof Missive:', typeof Missive);
+        console.log('window.Missive:', window.Missive);
+        
         if (typeof Missive === 'undefined') {
+            console.error('Missive API not available');
             this.showError('Missive API not available. Make sure this is running within a Missive iFrame.');
             return;
         }
 
+        console.log('Missive API found, setting up listeners...');
+        
         // Listen for conversation changes
         Missive.on('change:conversations', (conversations) => {
+            console.log('Conversation change detected:', conversations);
             this.handleConversationChange(conversations);
         });
 
-        console.log('Missive integration initialized');
+        console.log('Missive integration initialized successfully');
     }
 
     /**
@@ -62,25 +74,32 @@ class EmailSummarizer {
      */
     async handleConversationChange(conversations) {
         try {
+            console.log('handleConversationChange called with:', conversations);
+            
             // Check if exactly one conversation is selected
             if (!conversations || conversations.length === 0) {
+                console.log('No conversations selected, showing empty state');
                 this.showEmptyState();
                 return;
             }
 
             if (conversations.length > 1) {
+                console.log('Multiple conversations selected:', conversations.length);
                 this.showError('Please select only one conversation at a time.');
                 return;
             }
 
             const conversationId = conversations[0];
+            console.log('Processing conversation ID:', conversationId);
             
             // Avoid re-processing the same conversation
             if (this.currentConversationId === conversationId) {
+                console.log('Same conversation already processed, skipping');
                 return;
             }
 
             this.currentConversationId = conversationId;
+            console.log('Starting conversation processing...');
             await this.processConversation(conversationId);
 
         } catch (error) {
