@@ -31,13 +31,45 @@ An AI-powered iFrame integration for Missive that provides intelligent summaries
 2. Run the project
 3. Your app will be available at your Replit URL
 
-### 2. Get OpenAI API Key
+### 2. Configure API Token for Task Assignment (Required)
+
+**Important**: To enable proper task assignment (assigning tasks to users), you need to configure a Missive API token:
+
+#### Option 1: Quick Setup Script (Recommended)
+```bash
+./setup.sh
+```
+
+#### Option 2: Manual Setup
+1. **Copy the config template:**
+   ```bash
+   cp config.example.js config.js
+   ```
+
+2. **Get your Missive API token:**
+   - Go to **Missive Settings** → **API** → **Create a new token**
+   - Copy the token (starts with `missive_pat-`)
+
+3. **Edit `config.js` with your token:**
+   ```javascript
+   window.MissiveConfig = {
+       apiToken: 'missive_pat-your_actual_token_here', // Replace this
+       apiBaseUrl: 'https://public.missiveapp.com',
+       debugMode: true
+   };
+   ```
+
+4. **Security**: `config.js` is automatically ignored by git for security ✅
+
+📚 **For more security options, see [SECURITY.md](SECURITY.md)**
+
+### 3. Get OpenAI API Key
 
 1. Visit [OpenAI API Keys](https://platform.openai.com/api-keys)
 2. Create a new API key
 3. Copy the key (you'll need it for the URL)
 
-### 3. Set Up in Missive
+### 4. Set Up in Missive
 
 1. Open Missive
 2. Go to Integrations → Add Integration → iFrame
@@ -138,6 +170,12 @@ const headerPatterns = [
 4. **Loading issues**
    - Verify your hosting platform supports HTTPS
    - Check browser console for JavaScript errors
+
+5. **"Tasks are created but not assigned to me"**
+   - Ensure you've configured your Missive API token (see step 2 above)
+   - Check console for: `🔑 Using API token from: MissiveConfig (config.js)`
+   - Run `debugAssignmentTest()` in console to test assignment
+   - Verify you're on Missive's Productive plan (required for API access)
 
 ### Debug Mode
 

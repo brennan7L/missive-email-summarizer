@@ -754,7 +754,8 @@ ${threadText}`;
             throw new Error('No Missive API token available for REST API calls');
         }
         
-        const url = `https://public.missiveapp.com${endpoint}`;
+        const baseUrl = window.MissiveConfig?.apiBaseUrl || 'https://public.missiveapp.com';
+        const url = `${baseUrl}${endpoint}`;
         const options = {
             method: method,
             headers: {
@@ -790,40 +791,51 @@ ${threadText}`;
      * Get Missive API token for REST API calls
      * 
      * To enable proper task assignment, you need to configure a Missive API token:
-     * 1. Go to Missive Settings > API > Create a new token
-     * 2. Add your token here in one of these ways:
-     *    - Set window.MISSIVE_API_TOKEN = 'your_token_here' 
-     *    - Add <script>window.MISSIVE_API_TOKEN = 'your_token_here';</script> to your HTML
-     *    - Store in localStorage as 'missive_api_token'
+     * 1. Copy config.example.js to config.js
+     * 2. Edit config.js with your actual API token
+     * 3. Go to Missive Settings > API > Create a new token for the token value
      */
     getMissiveApiToken() {
-        // Try multiple sources for the API token
+        // Try multiple sources for the API token (in priority order)
         let token = null;
+        let source = 'none';
         
-        // 1. Check global variable
-        if (window.MISSIVE_API_TOKEN) {
-            token = window.MISSIVE_API_TOKEN;
-            console.log('🔑 Using API token from window.MISSIVE_API_TOKEN');
+        // 1. Check MissiveConfig object (recommended - from config.js)
+        if (window.MissiveConfig?.apiToken && 
+            window.MissiveConfig.apiToken !== 'missive_pat-your_actual_token_here') {
+            token = window.MissiveConfig.apiToken;
+            source = 'MissiveConfig (config.js)';
         }
         
-        // 2. Check localStorage
+        // 2. Check global variable (legacy support)
+        else if (window.MISSIVE_API_TOKEN) {
+            token = window.MISSIVE_API_TOKEN;
+            source = 'window.MISSIVE_API_TOKEN';
+        }
+        
+        // 3. Check localStorage (legacy support)
         else if (localStorage.getItem('missive_api_token')) {
             token = localStorage.getItem('missive_api_token');
-            console.log('🔑 Using API token from localStorage');
+            source = 'localStorage';
         }
         
-        // 3. Check environment variables (if available)
-        else if (process?.env?.MISSIVE_API_TOKEN) {
+        // 4. Check environment variables (build process)
+        else if (typeof process !== 'undefined' && process?.env?.MISSIVE_API_TOKEN) {
             token = process.env.MISSIVE_API_TOKEN;
-            console.log('🔑 Using API token from environment');
+            source = 'environment variables';
         }
         
-        if (!token) {
+        if (token) {
+            console.log(`🔑 Using API token from: ${source}`);
+            // Only show partial token for security
+            const maskedToken = token.substring(0, 12) + '...' + token.slice(-4);
+            console.log(`🔐 Token: ${maskedToken}`);
+        } else {
             console.log('⚠️ No API token configured for REST API calls');
-            console.log('💡 To enable proper task assignment, configure a Missive API token:');
-            console.log('   1. Go to Missive Settings > API > Create a new token');
-            console.log('   2. Set window.MISSIVE_API_TOKEN = "your_token_here"');
-            console.log('   3. Or store in localStorage as "missive_api_token"');
+            console.log('💡 To enable proper task assignment:');
+            console.log('   1. Copy config.example.js to config.js');
+            console.log('   2. Edit config.js with your actual API token');
+            console.log('   3. Get token from: Missive Settings > API > Create a new token');
         }
         
         return token;
