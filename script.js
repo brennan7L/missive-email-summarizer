@@ -698,15 +698,24 @@ ${threadText}`;
         
         console.log('✅ Current user found:', currentUser.display_name, 'ID:', currentUser.id);
         
-        // Prepare assignees array
-        let assignees = [currentUser.id]; // Always assign to current user
+        // Check if we should auto-assign tasks to current user (configurable)
+        const shouldAutoAssign = window.MissiveConfig?.autoAssignToCurrentUser !== false;
         
-        // If there's a specific assignee, add them too
+        // Prepare assignees array
+        let assignees = [];
+        if (shouldAutoAssign) {
+            assignees.push(currentUser.id); // Assign to current user BY DEFAULT
+            console.log(`👤 Task will be auto-assigned to you (${currentUser.display_name})`);
+        } else {
+            console.log(`ℹ️ Auto-assignment disabled, task will be unassigned unless specifically assigned`);
+        }
+        
+        // If there's a specific additional assignee, add them too
         if (assigneeName && assigneeName.toLowerCase() !== 'you' && assigneeName.toLowerCase() !== 'me') {
             const specificUserId = this.getUserIdFromName(assigneeName);
             if (specificUserId && specificUserId !== currentUser.id) {
                 assignees.push(specificUserId);
-                console.log(`🔄 Also assigning to: ${assigneeName} (ID: ${specificUserId})`);
+                console.log(`➕ Also assigning to: ${assigneeName} (ID: ${specificUserId})`);
             }
         }
         
@@ -745,7 +754,16 @@ ${threadText}`;
         }
         
         // Show success state
-        const successText = assigneeName ? `✓ Created & assigned!` : '✓ Created & assigned to you!';
+        let successText;
+        if (assigneeName && assigneeName.toLowerCase() !== 'you' && assigneeName.toLowerCase() !== 'me') {
+            if (shouldAutoAssign) {
+                successText = `✓ Task assigned to you + ${assigneeName}!`;
+            } else {
+                successText = `✓ Task assigned to ${assigneeName}!`;
+            }
+        } else {
+            successText = shouldAutoAssign ? '✓ Task assigned to you!' : '✓ Task created!';
+        }
         buttonElement.textContent = successText;
         buttonElement.classList.add('task-created');
         
@@ -889,23 +907,61 @@ ${threadText}`;
         const cleanTaskText = assigneeName ? taskText : this.parseTaskAssignee(taskText).cleanTaskText;
         console.log('✂️ Clean task text:', cleanTaskText);
         
-        // Create the task using Missive API (this creates an unassigned task)
+        // Get current user information for task assignment
+        const users = await Missive.fetchUsers();
+        const currentUser = users.find(user => user.me === true);
+        
+        if (!currentUser) {
+            throw new Error('Could not find current user information');
+        }
+        
+        console.log('✅ Current user found:', currentUser.display_name);
+        
+        // Create the task using Missive API
         console.log('📋 Creating task in Missive...');
         await Missive.createTask(cleanTaskText, false);
-        console.log('✅ Task created successfully in Missive');
+        console.log('✅ Task created in Missive');
         
-        // Always try to assign the conversation to you (the current user) so you can see the task
-        console.log('🎯 Assigning conversation to current user...');
-        await this.assignConversationToCurrentUser();
+        // Check if we should auto-assign tasks to current user (configurable)
+        const shouldAutoAssign = window.MissiveConfig?.autoAssignToCurrentUser !== false;
         
-        // If a specific assignee was detected, also try to assign to them
+        if (shouldAutoAssign) {
+            // Assign the task to current user (YOU) by default
+            console.log('🎯 Auto-assigning task to you (current user)...');
+            try {
+                await Missive.addAssignees([currentUser.id]);
+                console.log('✅ Task successfully assigned to you!');
+            } catch (error) {
+                console.warn('⚠️ Could not assign task to current user via addAssignees, trying alternative approach:', error);
+                // Alternative: assign the conversation which should make tasks visible
+                await this.assignConversationToCurrentUser();
+            }
+        } else {
+            console.log('ℹ️ Auto-assignment disabled in config, task will remain unassigned unless specifically assigned');
+        }
+        
+        // If a specific additional assignee was detected, also assign to them
         if (assigneeName && assigneeName.toLowerCase() !== 'you' && assigneeName.toLowerCase() !== 'me') {
-            console.log('🎯 Also attempting to assign conversation to:', assigneeName);
-            await this.assignTaskToUser(assigneeName);
+            console.log('🎯 Also attempting to assign task to:', assigneeName);
+            const specificUserId = this.getUserIdFromName(assigneeName);
+            if (specificUserId && specificUserId !== currentUser.id) {
+                try {
+                    await Missive.addAssignees([specificUserId]);
+                    console.log('✅ Task also assigned to:', assigneeName);
+                } catch (error) {
+                    console.warn('⚠️ Could not assign task to specific user:', error);
+                    // Don't fail the whole operation for this
+                }
+            }
         }
         
         // Show success state
-        const successText = assigneeName ? `✓ Added & assigned!` : '✓ Added & assigned to you!';
+        let successText;
+        if (assigneeName && assigneeName.toLowerCase() !== 'you' && assigneeName.toLowerCase() !== 'me') {
+            successText = shouldAutoAssign ? `✓ Task assigned to you + ${assigneeName}!` : `✓ Task assigned to ${assigneeName}!`;
+        } else {
+            successText = shouldAutoAssign ? '✓ Task assigned to you!' : '✓ Task created!';
+        }
         buttonElement.textContent = successText;
         buttonElement.classList.add('task-created');
         
