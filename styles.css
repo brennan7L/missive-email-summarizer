@@ -15,34 +15,36 @@
 /* Magic Eye ASCII Title - Enhanced & Bigger */
 .magic-eye-title {
     text-align: center;
-    margin: 0 0 20px 0;
+    margin: 0 0 24px 0;
     padding: 0;
     width: 100%;
+    display: flex;
+    justify-content: center;
 }
 
 .ascii-art {
     font-family: 'Courier New', monospace;
-    font-size: 16px;
-    line-height: 1.4;
+    font-size: 20px;
+    line-height: 1.5;
     color: #ffffff;
-    margin: 0 auto;
-    text-shadow: 0 0 15px rgba(255, 255, 255, 0.5), 0 0 30px rgba(138, 43, 226, 0.4);
+    margin: 0;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.6), 0 0 40px rgba(186, 144, 255, 0.5);
     background: linear-gradient(135deg, 
-        rgba(138, 43, 226, 0.3), 
-        rgba(75, 0, 130, 0.3), 
-        rgba(147, 0, 211, 0.25));
-    border-radius: 16px;
-    padding: 24px 20px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
+        rgba(186, 144, 255, 0.4), 
+        rgba(186, 144, 255, 0.3), 
+        rgba(186, 144, 255, 0.2));
+    border-radius: 20px;
+    padding: 32px 28px;
+    border: 1px solid rgba(186, 144, 255, 0.4);
     white-space: pre;
     overflow: hidden;
     box-shadow: 
-        0 6px 25px rgba(138, 43, 226, 0.5),
-        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        0 8px 32px rgba(186, 144, 255, 0.4),
+        inset 0 2px 0 rgba(255, 255, 255, 0.2);
     position: relative;
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(16px);
     text-align: center;
-    max-width: fit-content;
+    display: inline-block;
 }
 
 .ascii-art::before {
@@ -173,7 +175,7 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background-color: rgba(138, 43, 226, 0.8);
+    background-color: rgba(186, 144, 255, 0.8);
     animation: dotPulse 1.4s ease-in-out infinite;
 }
 
@@ -193,11 +195,11 @@
 @keyframes brainPulse {
     0%, 100% {
         transform: scale(1);
-        filter: drop-shadow(0 0 10px rgba(138, 43, 226, 0.5));
+        filter: drop-shadow(0 0 10px rgba(186, 144, 255, 0.5));
     }
     50% {
         transform: scale(1.1);
-        filter: drop-shadow(0 0 20px rgba(138, 43, 226, 0.8));
+        filter: drop-shadow(0 0 20px rgba(186, 144, 255, 0.8));
     }
 }
 
@@ -222,11 +224,11 @@
 
 @keyframes textGlow {
     0% {
-        text-shadow: 0 0 5px rgba(138, 43, 226, 0.5);
+        text-shadow: 0 0 5px rgba(186, 144, 255, 0.5);
         opacity: 0.9;
     }
     100% {
-        text-shadow: 0 0 15px rgba(138, 43, 226, 0.8);
+        text-shadow: 0 0 15px rgba(186, 144, 255, 0.8);
         opacity: 1;
     }
 }
@@ -272,9 +274,9 @@
 .control-btn {
     padding: 10px 16px;
     font-size: 13px;
-    background: rgba(138, 43, 226, 0.1);
+    background: rgba(186, 144, 255, 0.1);
     color: #ffffff;
-    border: 1px solid rgba(138, 43, 226, 0.3);
+    border: 1px solid rgba(186, 144, 255, 0.3);
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -287,10 +289,10 @@
 }
 
 .control-btn:hover {
-    background: rgba(138, 43, 226, 0.2);
-    border-color: rgba(138, 43, 226, 0.5);
+    background: rgba(186, 144, 255, 0.2);
+    border-color: rgba(186, 144, 255, 0.5);
     transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(138, 43, 226, 0.3);
+    box-shadow: 0 4px 16px rgba(186, 144, 255, 0.3);
 }
 
 .control-btn:active {
@@ -300,18 +302,18 @@
 /* Add All Comments Button - Special Styling */
 .control-btn.add-all-comments {
     background: linear-gradient(135deg, 
-        rgba(138, 43, 226, 0.15), 
-        rgba(75, 0, 130, 0.15));
-    border-color: rgba(138, 43, 226, 0.4);
+        rgba(186, 144, 255, 0.15), 
+        rgba(186, 144, 255, 0.12));
+    border-color: rgba(186, 144, 255, 0.4);
     min-width: 140px;
 }
 
 .control-btn.add-all-comments:hover {
     background: linear-gradient(135deg, 
-        rgba(138, 43, 226, 0.25), 
-        rgba(75, 0, 130, 0.25));
-    border-color: rgba(138, 43, 226, 0.6);
-    box-shadow: 0 4px 20px rgba(138, 43, 226, 0.4);
+        rgba(186, 144, 255, 0.25), 
+        rgba(186, 144, 255, 0.2));
+    border-color: rgba(186, 144, 255, 0.6);
+    box-shadow: 0 4px 20px rgba(186, 144, 255, 0.4);
 }
 
 .control-btn.add-all-comments:disabled {
@@ -802,20 +804,20 @@
 .summarize-button {
     padding: 12px 24px;
     font-size: 16px;
-    background: linear-gradient(135deg, rgba(138, 43, 226, 0.8), rgba(75, 0, 130, 0.8));
+    background: linear-gradient(135deg, rgba(186, 144, 255, 0.8), rgba(186, 144, 255, 0.6));
     color: #ffffff;
-    border: 1px solid rgba(138, 43, 226, 1);
+    border: 1px solid rgba(186, 144, 255, 1);
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.3s ease;
     font-weight: 500;
-    box-shadow: 0 2px 8px rgba(138, 43, 226, 0.3);
+    box-shadow: 0 2px 8px rgba(186, 144, 255, 0.3);
 }
 
 .summarize-button:hover {
-    background: linear-gradient(135deg, rgba(138, 43, 226, 1), rgba(75, 0, 130, 1));
+    background: linear-gradient(135deg, rgba(186, 144, 255, 1), rgba(186, 144, 255, 0.8));
     transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(138, 43, 226, 0.4);
+    box-shadow: 0 4px 16px rgba(186, 144, 255, 0.4);
 }
 
 /* Section Header with Buttons */
@@ -844,16 +846,17 @@
 }
 
 .item-count {
-    background-color: rgba(255, 255, 255, 0.15);
-    color: rgba(255, 255, 255, 0.9);
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
-    min-width: 20px;
+    background-color: rgba(186, 144, 255, 0.3);
+    color: rgba(255, 255, 255, 0.95);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 24px;
     text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(4px);
+    border: 1px solid rgba(186, 144, 255, 0.4);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 2px 8px rgba(186, 144, 255, 0.2);
 }
 
 .comment-section-btn {
