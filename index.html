@@ -94,6 +94,47 @@
         };
         document.head.appendChild(configScript);
     </script>
+    
+    <!-- Fix postMessage origin issues -->
+    <script>
+        // Handle iframe communication and fix origin mismatches
+        (function() {
+            // Detect if we're running in an iframe
+            if (window !== window.top) {
+                console.log('🔗 Running in iframe - setting up parent communication');
+                
+                // Override default postMessage to handle Missive origin variations
+                const originalPostMessage = window.parent.postMessage.bind(window.parent);
+                
+                // Listen for messages from parent (Missive)
+                window.addEventListener('message', function(event) {
+                    const validOrigins = [
+                        'https://mail.missiveapp.com',
+                        'https://missiveapp.com',
+                        'https://public.missiveapp.com'
+                    ];
+                    
+                    if (validOrigins.includes(event.origin)) {
+                        console.log('📨 Received message from Missive:', event.origin, event.data);
+                    }
+                });
+                
+                // Send a ready message to parent
+                setTimeout(() => {
+                    try {
+                        window.parent.postMessage({
+                            type: 'integration-ready',
+                            source: 'email-summarizer'
+                        }, 'https://mail.missiveapp.com');
+                        console.log('📤 Sent ready message to parent');
+                    } catch (error) {
+                        console.log('ℹ️ Parent communication not available:', error.message);
+                    }
+                }, 1000);
+            }
+        })();
+    </script>
+    
     <script src="script.js"></script>
 </body>
 </html> 

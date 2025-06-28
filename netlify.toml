@@ -11,10 +11,10 @@
   MISSIVE_DEBUG_MODE = "false"
   MISSIVE_AUTO_ASSIGN = "true"
 
-# Security headers
+# Security headers - Allow embedding in Missive
 [[headers]]
   for = "/*"
   [headers.values]
-    X-Frame-Options = "SAMEORIGIN"
     X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin" 
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "frame-ancestors 'self' https://*.missiveapp.com https://mail.missiveapp.com" 

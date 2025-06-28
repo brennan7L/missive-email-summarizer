@@ -24,18 +24,30 @@ class EmailSummarizer {
         // Check if Missive API is available
         if (typeof Missive === 'undefined') {
             console.error('Missive API not available - make sure missive.js is loaded');
-            this.showError('Missive API not available. Please ensure this integration is running inside Missive.');
+            // Give it a moment to load, then try again
+            setTimeout(() => {
+                if (typeof Missive === 'undefined') {
+                    this.showError('Missive API not available. Please ensure this integration is running inside Missive.');
+                } else {
+                    this.initializeMissiveAPI();
+                }
+            }, 2000);
             return;
         }
 
-        // Set up conversation change listener
-        Missive.on('change:conversations', (conversationIds) => {
-            console.log('Conversations changed:', conversationIds);
-            this.handleConversationChange(conversationIds);
-        });
+        try {
+            // Set up conversation change listener
+            Missive.on('change:conversations', (conversationIds) => {
+                console.log('Conversations changed:', conversationIds);
+                this.handleConversationChange(conversationIds);
+            });
 
-        console.log('Missive API integration initialized successfully');
-        this.showEmptyState();
+            console.log('Missive API integration initialized successfully');
+            this.showEmptyState();
+        } catch (error) {
+            console.error('Error initializing Missive API:', error);
+            this.showError('Failed to initialize Missive integration. Please refresh and try again.');
+        }
     }
 
     /**
