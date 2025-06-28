@@ -357,8 +357,49 @@
 .tone-gauge-header {
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: space-between;
     margin-bottom: 12px;
+}
+
+.tone-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.confidence-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.confidence-indicator {
+    font-size: 14px;
+    line-height: 1;
+}
+
+.confidence-text {
+    font-weight: 500;
+    color: var(--text-color, #ffffff);
+}
+
+/* Confidence level styling */
+.confidence-very-high .confidence-indicator {
+    color: #22c55e;
+}
+
+.confidence-high .confidence-indicator {
+    color: #84cc16;
+}
+
+.confidence-medium .confidence-indicator {
+    color: #f59e0b;
+}
+
+.confidence-low .confidence-indicator {
+    color: #f97316;
 }
 
 .tone-icon {
@@ -478,10 +519,20 @@
 }
 
 .summary-section {
-    margin-bottom: 16px;
-    border: 1px solid var(--border-color, #e1e1e1);
-    border-radius: 6px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
     overflow: hidden;
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.summary-section:hover {
+    border-color: rgba(255, 255, 255, 0.18);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
 }
 
 /* Removed old section-header rules - using updated ones below */
@@ -540,18 +591,50 @@
 /* ASCII title already has white color styling above */
 
 .section-header {
-    background-color: rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.08), 
+        rgba(255, 255, 255, 0.04));
     color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 16px 20px;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.5px;
+    position: relative;
+    overflow: hidden;
 }
 
 .section-header:hover {
-    background-color: rgba(255, 255, 255, 0.15);
+    background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.12), 
+        rgba(255, 255, 255, 0.08));
+    border-bottom-color: rgba(255, 255, 255, 0.15);
+}
+
+.section-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.05) 50%, 
+        transparent 100%);
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+}
+
+.section-header:hover::before {
+    transform: translateX(100%);
 }
 
 .section-content {
-    background-color: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.15);
     color: #ffffff;
+    padding: 20px;
 }
 
 .empty-state, 
@@ -754,16 +837,21 @@
 }
 
 .comment-section-btn {
-    padding: 4px 8px;
-    font-size: 11px;
+    padding: 6px 8px;
+    font-size: 14px;
     background-color: rgba(23, 162, 184, 0.8);
     color: #ffffff;
     border: 1px solid rgba(23, 162, 184, 1);
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
-    min-width: 100px;
+    min-width: 32px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     text-align: center;
 }
 

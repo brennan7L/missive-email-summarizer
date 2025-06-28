@@ -260,7 +260,9 @@ class EmailSummarizer {
 FIRST, analyze the tone of the following email thread and classify it into one of these categories:
 Happy, Satisfied, Neutral, Frustrated, or Angry.
 
-Start your response with: "TONE: [category]"
+Also provide a confidence score from 1-100 indicating how certain you are about this tone classification.
+
+Start your response with: "TONE: [category] | CONFIDENCE: [score]"
 
 THEN, read the email thread and extract the key points, decisions, action items, deadlines, and important context. Summarize them in a concise bullet-point format, grouped by category if needed (e.g., Action Items, Key Decisions, Deadlines, Open Questions, etc.).
 
@@ -307,11 +309,11 @@ ${threadText}`;
      */
     displaySummary(summaryText) {
         try {
-            // Extract tone from the summary text
-            const { tone, cleanedSummary } = this.extractTone(summaryText);
+            // Extract tone and confidence from the summary text
+            const { tone, confidence, cleanedSummary } = this.extractTone(summaryText);
             
-            // Display tone gauge
-            this.displayToneGauge(tone);
+            // Display tone gauge with confidence
+            this.displayToneGauge(tone, confidence);
             
             // Parse and display summary sections
             const sections = this.parseSummaryIntoSections(cleanedSummary);
@@ -342,27 +344,36 @@ ${threadText}`;
     }
 
     /**
-     * Extract tone from AI response and return cleaned summary
+     * Extract tone and confidence from AI response and return cleaned summary
      */
     extractTone(summaryText) {
-        // Look for TONE: [category] at the beginning of the response
-        const toneMatch = summaryText.match(/^TONE:\s*(Happy|Satisfied|Neutral|Frustrated|Angry)/i);
+        // Look for TONE: [category] | CONFIDENCE: [score] at the beginning of the response
+        const toneMatch = summaryText.match(/^TONE:\s*(Happy|Satisfied|Neutral|Frustrated|Angry)\s*\|\s*CONFIDENCE:\s*(\d+)/i);
         
         if (toneMatch) {
             const tone = toneMatch[1];
+            const confidence = parseInt(toneMatch[2]);
             // Remove the tone line from the summary
+            const cleanedSummary = summaryText.replace(/^TONE:\s*\w+\s*\|\s*CONFIDENCE:\s*\d+\s*\n?/i, '').trim();
+            return { tone, confidence, cleanedSummary };
+        }
+        
+        // Fallback: try old format without confidence
+        const simpleToneMatch = summaryText.match(/^TONE:\s*(Happy|Satisfied|Neutral|Frustrated|Angry)/i);
+        if (simpleToneMatch) {
+            const tone = simpleToneMatch[1];
             const cleanedSummary = summaryText.replace(/^TONE:\s*\w+\s*\n?/i, '').trim();
-            return { tone, cleanedSummary };
+            return { tone, confidence: 75, cleanedSummary }; // Default confidence
         }
         
         // Default to Neutral if no tone found
-        return { tone: 'Neutral', cleanedSummary: summaryText };
+        return { tone: 'Neutral', confidence: 50, cleanedSummary: summaryText };
     }
 
     /**
      * Display the tone gauge above the summary controls
      */
-    displayToneGauge(tone) {
+    displayToneGauge(tone, confidence = 75) {
         // Remove existing tone gauge if present
         const existingGauge = document.querySelector('.tone-gauge-container');
         if (existingGauge) {
@@ -372,7 +383,7 @@ ${threadText}`;
         // Create tone gauge container
         const gaugeContainer = document.createElement('div');
         gaugeContainer.className = 'tone-gauge-container';
-        gaugeContainer.innerHTML = this.createToneGaugeHTML(tone);
+        gaugeContainer.innerHTML = this.createToneGaugeHTML(tone, confidence);
 
         // Insert before the summary controls
         const summaryControls = document.querySelector('.summary-controls');
@@ -382,16 +393,23 @@ ${threadText}`;
     }
 
     /**
-     * Create tone gauge HTML with proper styling and color coding
+     * Create tone gauge HTML with proper styling, color coding, and confidence score
      */
-    createToneGaugeHTML(tone) {
+    createToneGaugeHTML(tone, confidence) {
         const toneConfig = this.getToneConfiguration(tone);
+        const confidenceLevel = this.getConfidenceLevel(confidence);
         
         return `
             <div class="tone-gauge">
                 <div class="tone-gauge-header">
-                    <span class="tone-icon">${toneConfig.icon}</span>
-                    <span class="tone-label">Customer Tone</span>
+                    <div class="tone-info">
+                        <span class="tone-icon">${toneConfig.icon}</span>
+                        <span class="tone-label">Customer Tone</span>
+                    </div>
+                    <div class="confidence-info">
+                        <span class="confidence-indicator ${confidenceLevel.className}">${confidenceLevel.icon}</span>
+                        <span class="confidence-text">${confidence}% confidence</span>
+                    </div>
                 </div>
                 <div class="tone-gauge-bar">
                     <div class="tone-gauge-fill ${toneConfig.className}" 
@@ -441,6 +459,33 @@ ${threadText}`;
         };
 
         return configurations[tone] || configurations['Neutral'];
+    }
+
+    /**
+     * Get confidence level configuration for visual indicators
+     */
+    getConfidenceLevel(confidence) {
+        if (confidence >= 90) {
+            return {
+                className: 'confidence-very-high',
+                icon: '🎯'
+            };
+        } else if (confidence >= 75) {
+            return {
+                className: 'confidence-high',
+                icon: '✓'
+            };
+        } else if (confidence >= 50) {
+            return {
+                className: 'confidence-medium',
+                icon: '~'
+            };
+        } else {
+            return {
+                className: 'confidence-low',
+                icon: '?'
+            };
+        }
     }
 
     /**
@@ -570,8 +615,8 @@ ${threadText}`;
         headerDiv.innerHTML = `
             <span>${title}</span>
             <div class="header-buttons">
-                <button class="comment-section-btn" title="Post section as comment" data-section-title="${this.escapeHtml(title)}" data-section-content="${this.escapeHtml(content)}">
-                    💬 Post as Comment
+                <button class="comment-section-btn" title="Post this section as a comment in Missive" data-section-title="${this.escapeHtml(title)}" data-section-content="${this.escapeHtml(content)}">
+                    💬
                 </button>
                 <span class="toggle-icon">▼</span>
             </div>
