@@ -664,17 +664,8 @@ ${threadText}`;
             // Check if we should auto-assign tasks to current user (configurable)
             const shouldAutoAssign = window.MissiveConfig?.autoAssignToCurrentUser !== false;
             
-            // Prepare assignees array for debugging
-            let assignees = [];
-            if (shouldAutoAssign) {
-                assignees.push(currentUser.id);
-            }
-            if (assigneeName && assigneeName.toLowerCase() !== 'you' && assigneeName.toLowerCase() !== 'me') {
-                const specificUserId = this.getUserIdFromName(assigneeName);
-                if (specificUserId && specificUserId !== currentUser.id) {
-                    assignees.push(specificUserId);
-                }
-            }
+            // Debug: Show configuration without needing currentUser at this point
+            console.log('🔧 Auto-assign enabled:', shouldAutoAssign);
             
             // Debug: Show what the REST API payload would look like
             console.log('🔍 === TASK CREATION DEBUG ===');
@@ -682,20 +673,8 @@ ${threadText}`;
             console.log('👤 Assignee name:', assigneeName);
             console.log('🔧 Auto-assign enabled:', shouldAutoAssign);
             
-            // Try REST API first if we have an API token
-            const apiToken = this.getMissiveApiToken();
-            if (apiToken && assignees.length > 0) {
-                console.log('🌐 API token available - attempting REST API with task assignment...');
-                try {
-                    const result = await this.createTaskWithRestAPI(cleanTaskText, assigneeName, buttonElement);
-                    console.log('✅ REST API task creation successful');
-                    return;
-                } catch (restError) {
-                    console.warn('⚠️ REST API failed, falling back to JavaScript API:', restError);
-                }
-            } else {
-                console.log('⚠️ No API token or no assignees - using JavaScript API fallback');
-            }
+            // REST API temporarily disabled - using JavaScript API which is working well
+            console.log('🔄 Using JavaScript API (REST API temporarily disabled for stability)...');
             
             // Use JavaScript API approach
             await this.createTaskWithJavaScriptAPI(taskText, buttonElement);
@@ -773,19 +752,19 @@ ${threadText}`;
             console.log('✅ Organization ID found:', organizationId);
         }
         
-        // Prepare the REST API payload with correct Missive format
+        // Prepare the REST API payload with correct Missive format per documentation
         const taskPayload = {
             tasks: {
                 organization: organizationId,
                 title: cleanTaskText.length > 50 ? cleanTaskText.substring(0, 50) + '...' : cleanTaskText,
                 description: cleanTaskText,
                 assignees: assignees,
-                add_users: assignees, // This is the key field for actually assigning users!
-                subtask: false
+                add_users: assignees, // Key field for actually assigning users per API docs
+                subtask: !!conversationId // true when conversation exists (subtask), false for standalone
             }
         };
         
-        // Add conversation if available
+        // Add conversation if available (required for subtasks)
         if (conversationId) {
             taskPayload.tasks.conversation = conversationId;
         }
