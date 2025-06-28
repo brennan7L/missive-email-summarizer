@@ -1,25 +1,15 @@
 [build]
   # Build command to run during deployment
-  command = "./build.sh"
+  command = "node build.js"
   
-  # Directory to publish (current directory since it's a static site)
+  # Directory to publish (current directory since it's a static site)  
   publish = "."
-  
-  # No install command needed for this static site
-  ignore = "echo 'No install needed'"
 
 [build.environment]
   # Default environment variables (can be overridden in Netlify dashboard)
   MISSIVE_API_BASE_URL = "https://public.missiveapp.com"
   MISSIVE_DEBUG_MODE = "false"
   MISSIVE_AUTO_ASSIGN = "true"
-
-# Redirect rules (optional)
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-  conditions = {Role = ["!admin"]}
 
 # Security headers
 [[headers]]

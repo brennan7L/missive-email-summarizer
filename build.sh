@@ -1,16 +1,22 @@
 #!/bin/bash
+set -e  # Exit on any error
 
 # Build script for Netlify deployment
 # Generates config.js from environment variables
 
 echo "🔧 Generating config.js from environment variables..."
+echo "🌍 Environment: ${CONTEXT:-local}"
 
 # Check if MISSIVE_API_TOKEN is set
 if [ -z "$MISSIVE_API_TOKEN" ]; then
     echo "❌ Error: MISSIVE_API_TOKEN environment variable is not set"
-    echo "Please add it in Netlify Site Settings > Environment variables"
+    echo "📋 Available environment variables:"
+    env | grep -E "MISSIVE|NETLIFY" || echo "   (none found)"
+    echo "Please add MISSIVE_API_TOKEN in Netlify Site Settings > Environment variables"
     exit 1
 fi
+
+echo "✅ MISSIVE_API_TOKEN found (${#MISSIVE_API_TOKEN} characters)"
 
 # Generate config.js from environment variables
 cat > config.js << EOF
