@@ -774,7 +774,7 @@ ${threadText}`;
             'asya ray': '1eee7d0b-40c0-48bf-9bd0-770ad59bb30c',
             'benjamin quattrocchi': '149ed9af-90c1-4b16-b43a-2e7b9e46214d',
             'brandon wollam': 'a8b532e0-bb60-4361-b588-b409e8525290',
-            'brennan o\'dowd': '88ce993b-1e35-46d6-afb0-3bbe54eaee19',
+            'brennan o\'dowd': '98ce05ad-1d55-46d6-afb0-3bbe54caee19',
             'carl sipsky': '2356fbb0-ce5e-4e33-bfaa-ec62e4fd6901',
             'casey hylander': 'b8a7bba2-9bc5-4465-8828-cd3197c28f65',
             'christi kuhn': '53c12df0-7fbc-4f10-ae4d-ba23f42c3f7b', // Using first ID for Christi
@@ -807,7 +807,7 @@ ${threadText}`;
             'ben': '149ed9af-90c1-4b16-b43a-2e7b9e46214d',
             'benjamin': '149ed9af-90c1-4b16-b43a-2e7b9e46214d',
             'brandon': 'a8b532e0-bb60-4361-b588-b409e8525290',
-            'brennan': '88ce993b-1e35-46d6-afb0-3bbe54eaee19',
+            'brennan': '98ce05ad-1d55-46d6-afb0-3bbe54caee19',
             'carl': '2356fbb0-ce5e-4e33-bfaa-ec62e4fd6901',
             'casey': 'b8a7bba2-9bc5-4465-8828-cd3197c28f65',
             'christi': '53c12df0-7fbc-4f10-ae4d-ba23f42c3f7b',
