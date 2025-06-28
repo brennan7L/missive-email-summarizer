@@ -560,7 +560,7 @@ ${threadText}`;
                 }
                 
                 // Start new section
-                currentSection = trimmedLine.replace(/[:#]/g, '').trim();
+                currentSection = trimmedLine.replace(/[\*:#]/g, '').trim();
                 currentContent = [];
             } else if (trimmedLine && currentSection) {
                 currentContent.push(line);
