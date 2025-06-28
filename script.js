@@ -614,7 +614,8 @@ ${threadText}`;
     }
 
     /**
-     * Create a task in Missive using the API with smart user assignment
+     * Create a task in Missive using the best available API method
+     * Tries REST API first (with proper assignment), then falls back to JavaScript API
      */
     async createMissiveTask(taskText, buttonElement) {
         try {
@@ -641,29 +642,17 @@ ${threadText}`;
             const cleanTaskText = assigneeName ? taskText : this.parseTaskAssignee(taskText).cleanTaskText;
             console.log('✂️ Clean task text:', cleanTaskText);
             
-            // IMPORTANT: The Missive JavaScript API createTask() method doesn't support 
-            // direct task assignment. Tasks are created unassigned. We'll assign the 
-            // conversation to the user instead so they can see and manage the task.
-            
-            // Create the task using Missive API (this creates an unassigned task)
-            console.log('📋 Creating task in Missive...');
-            await Missive.createTask(cleanTaskText, false);
-            console.log('✅ Task created successfully in Missive');
-            
-            // Always try to assign the conversation to you (the current user) so you can see the task
-            console.log('🎯 Assigning conversation to current user...');
-            await this.assignConversationToCurrentUser();
-            
-            // If a specific assignee was detected, also try to assign to them
-            if (assigneeName && assigneeName.toLowerCase() !== 'you' && assigneeName.toLowerCase() !== 'me') {
-                console.log('🎯 Also attempting to assign conversation to:', assigneeName);
-                await this.assignTaskToUser(assigneeName);
+            // Try REST API approach first (supports proper task assignment)
+            try {
+                console.log('🚀 Attempting REST API task creation with assignment...');
+                await this.createTaskWithRestAPI(cleanTaskText, assigneeName, buttonElement);
+                console.log('✅ REST API task creation successful!');
+            } catch (restError) {
+                console.log('⚠️ REST API failed, falling back to JavaScript API:', restError.message);
+                
+                // Fallback to JavaScript API approach
+                await this.createTaskWithJavaScriptAPI(taskText, buttonElement);
             }
-            
-            // Show success state
-            const successText = assigneeName ? `✓ Added & assigned!` : '✓ Added & assigned to you!';
-            buttonElement.textContent = successText;
-            buttonElement.classList.add('task-created');
             
             console.log('🎉 Task creation complete:', cleanTaskText);
             console.log('🎯 === END TASK DEBUG ===');
@@ -683,6 +672,218 @@ ${threadText}`;
                 buttonElement.classList.remove('task-error');
             }, 3000);
         }
+    }
+
+    /**
+     * Create a task using the REST API with proper assignee support
+     */
+    async createTaskWithRestAPI(cleanTaskText, assigneeName, buttonElement) {
+        console.log('🌐 Creating task via REST API...');
+        
+        // Get the current user information
+        const users = await Missive.fetchUsers();
+        const currentUser = users.find(user => user.me === true);
+        
+        if (!currentUser) {
+            throw new Error('Could not find current user information for REST API');
+        }
+        
+        console.log('✅ Current user found:', currentUser.display_name, 'ID:', currentUser.id);
+        
+        // Prepare assignees array
+        let assignees = [currentUser.id]; // Always assign to current user
+        
+        // If there's a specific assignee, add them too
+        if (assigneeName && assigneeName.toLowerCase() !== 'you' && assigneeName.toLowerCase() !== 'me') {
+            const specificUserId = this.getUserIdFromName(assigneeName);
+            if (specificUserId && specificUserId !== currentUser.id) {
+                assignees.push(specificUserId);
+                console.log(`🔄 Also assigning to: ${assigneeName} (ID: ${specificUserId})`);
+            }
+        }
+        
+        console.log('👥 Task assignees:', assignees);
+        
+        // Get current conversation ID
+        const conversationId = await this.getCurrentConversationId();
+        console.log('📧 Conversation ID:', conversationId);
+        
+        // Prepare the REST API payload
+        const taskPayload = {
+            tasks: {
+                description: cleanTaskText,
+                assignees: assignees,
+                state: 'todo'
+            }
+        };
+        
+        // Add conversation if available
+        if (conversationId) {
+            taskPayload.tasks.conversation = conversationId;
+        }
+        
+        console.log('📦 Task payload:', taskPayload);
+        
+        // Make REST API call to create task with assignment
+        const result = await this.makeRestApiCall('POST', '/v1/tasks', taskPayload);
+        console.log('✅ Task created and assigned via REST API');
+        
+        // Also assign the conversation to ensure visibility
+        console.log('🎯 Assigning conversation for additional visibility...');
+        await this.assignConversationToCurrentUser();
+        
+        if (assigneeName && assigneeName.toLowerCase() !== 'you' && assigneeName.toLowerCase() !== 'me') {
+            await this.assignTaskToUser(assigneeName);
+        }
+        
+        // Show success state
+        const successText = assigneeName ? `✓ Created & assigned!` : '✓ Created & assigned to you!';
+        buttonElement.textContent = successText;
+        buttonElement.classList.add('task-created');
+        
+        return result;
+    }
+
+    /**
+     * Make a REST API call to Missive
+     */
+    async makeRestApiCall(method, endpoint, payload = null) {
+        // Get API token from settings or environment
+        const apiToken = this.getMissiveApiToken();
+        if (!apiToken) {
+            throw new Error('No Missive API token available for REST API calls');
+        }
+        
+        const url = `https://public.missiveapp.com${endpoint}`;
+        const options = {
+            method: method,
+            headers: {
+                'Authorization': `Bearer ${apiToken}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        };
+        
+        if (payload && (method === 'POST' || method === 'PATCH')) {
+            options.body = JSON.stringify(payload);
+        }
+        
+        console.log(`🌐 Making REST API call: ${method} ${url}`);
+        console.log('📦 Payload:', payload);
+        
+        const response = await fetch(url, options);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`REST API call failed: ${response.status} ${response.statusText} - ${errorText}`);
+        }
+        
+        const result = response.headers.get('content-type')?.includes('application/json') 
+            ? await response.json() 
+            : await response.text();
+            
+        console.log('✅ REST API response:', result);
+        return result;
+    }
+
+    /**
+     * Get Missive API token for REST API calls
+     * 
+     * To enable proper task assignment, you need to configure a Missive API token:
+     * 1. Go to Missive Settings > API > Create a new token
+     * 2. Add your token here in one of these ways:
+     *    - Set window.MISSIVE_API_TOKEN = 'your_token_here' 
+     *    - Add <script>window.MISSIVE_API_TOKEN = 'your_token_here';</script> to your HTML
+     *    - Store in localStorage as 'missive_api_token'
+     */
+    getMissiveApiToken() {
+        // Try multiple sources for the API token
+        let token = null;
+        
+        // 1. Check global variable
+        if (window.MISSIVE_API_TOKEN) {
+            token = window.MISSIVE_API_TOKEN;
+            console.log('🔑 Using API token from window.MISSIVE_API_TOKEN');
+        }
+        
+        // 2. Check localStorage
+        else if (localStorage.getItem('missive_api_token')) {
+            token = localStorage.getItem('missive_api_token');
+            console.log('🔑 Using API token from localStorage');
+        }
+        
+        // 3. Check environment variables (if available)
+        else if (process?.env?.MISSIVE_API_TOKEN) {
+            token = process.env.MISSIVE_API_TOKEN;
+            console.log('🔑 Using API token from environment');
+        }
+        
+        if (!token) {
+            console.log('⚠️ No API token configured for REST API calls');
+            console.log('💡 To enable proper task assignment, configure a Missive API token:');
+            console.log('   1. Go to Missive Settings > API > Create a new token');
+            console.log('   2. Set window.MISSIVE_API_TOKEN = "your_token_here"');
+            console.log('   3. Or store in localStorage as "missive_api_token"');
+        }
+        
+        return token;
+    }
+
+    /**
+     * Get the current conversation ID
+     */
+    async getCurrentConversationId() {
+        try {
+            // In the Missive iframe context, we can get the conversation ID from the URL or context
+            // This is a simplified approach - you might need to adjust based on actual implementation
+            const conversations = await Missive.fetchConversations();
+            if (conversations && conversations.length > 0) {
+                return conversations[0].id;
+            }
+            return null;
+        } catch (error) {
+            console.error('❌ Failed to get current conversation ID:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Create task using JavaScript API (fallback method)
+     */
+    async createTaskWithJavaScriptAPI(taskText, buttonElement) {
+        console.log('🔄 Using JavaScript API fallback...');
+        
+        // Get assignee from button data attribute (preferred) or parse from text
+        const assigneeName = buttonElement.getAttribute('data-assignee') || 
+                            this.parseTaskAssignee(taskText).assigneeName;
+        
+        console.log('👤 Detected assignee:', assigneeName);
+        
+        // Use clean task text (no assignee prefix)
+        const cleanTaskText = assigneeName ? taskText : this.parseTaskAssignee(taskText).cleanTaskText;
+        console.log('✂️ Clean task text:', cleanTaskText);
+        
+        // Create the task using Missive API (this creates an unassigned task)
+        console.log('📋 Creating task in Missive...');
+        await Missive.createTask(cleanTaskText, false);
+        console.log('✅ Task created successfully in Missive');
+        
+        // Always try to assign the conversation to you (the current user) so you can see the task
+        console.log('🎯 Assigning conversation to current user...');
+        await this.assignConversationToCurrentUser();
+        
+        // If a specific assignee was detected, also try to assign to them
+        if (assigneeName && assigneeName.toLowerCase() !== 'you' && assigneeName.toLowerCase() !== 'me') {
+            console.log('🎯 Also attempting to assign conversation to:', assigneeName);
+            await this.assignTaskToUser(assigneeName);
+        }
+        
+        // Show success state
+        const successText = assigneeName ? `✓ Added & assigned!` : '✓ Added & assigned to you!';
+        buttonElement.textContent = successText;
+        buttonElement.classList.add('task-created');
+        
+        console.log('🎉 JavaScript API task creation complete:', cleanTaskText);
     }
 
     /**
@@ -763,6 +964,31 @@ ${threadText}`;
 
         // No assignee found, return original text
         return { assigneeName: null, cleanTaskText: taskText };
+    }
+
+    /**
+     * Get user ID from name using the 7L team mapping
+     */
+    getUserIdFromName(name) {
+        const mapping = this.get7LUserMapping();
+        const normalizedName = name.toLowerCase().trim();
+        
+        // Direct lookup
+        if (mapping[normalizedName]) {
+            console.log(`✅ Found direct match: "${name}" -> ID: ${mapping[normalizedName]}`);
+            return mapping[normalizedName];
+        }
+        
+        // Try first name only
+        const firstName = normalizedName.split(' ')[0];
+        const firstNameMatch = Object.keys(mapping).find(key => key.startsWith(firstName));
+        if (firstNameMatch) {
+            console.log(`✅ Found first name match: "${name}" -> "${firstNameMatch}" -> ID: ${mapping[firstNameMatch]}`);
+            return mapping[firstNameMatch];
+        }
+        
+        console.log(`❌ No match found for: "${name}"`);
+        return null;
     }
 
     /**
