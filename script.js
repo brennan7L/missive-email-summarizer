@@ -684,12 +684,16 @@ ${threadText}`;
             console.log('🔧 Auto-assign enabled:', shouldAutoAssign);
             
             if (shouldAutoAssign) {
-                console.log('📦 REST API payload would be:', {
+                const organizationId = currentUser.organization_id || currentUser.organization?.id;
+                console.log('📦 CORRECT REST API payload format:', {
                     tasks: {
+                        organization: organizationId,
+                        title: cleanTaskText.length > 50 ? cleanTaskText.substring(0, 50) + '...' : cleanTaskText,
                         description: cleanTaskText,
                         assignees: assignees,
-                        state: 'todo',
-                        conversation: this.currentConversationId || 'unknown'
+                        add_users: assignees, // Key field for assignment!
+                        conversation: this.currentConversationId || 'unknown',
+                        subtask: false
                     }
                 });
             }
@@ -775,12 +779,25 @@ ${threadText}`;
         const conversationId = await this.getCurrentConversationId();
         console.log('📧 Conversation ID:', conversationId);
         
-        // Prepare the REST API payload
+        // Get organization ID from current user context
+        const organizationId = currentUser.organization_id || currentUser.organization?.id;
+        
+        if (!organizationId) {
+            console.warn('⚠️ No organization ID found in user data:', currentUser);
+            console.log('🔍 Available user properties:', Object.keys(currentUser));
+        } else {
+            console.log('✅ Organization ID found:', organizationId);
+        }
+        
+        // Prepare the REST API payload with correct Missive format
         const taskPayload = {
             tasks: {
+                organization: organizationId,
+                title: cleanTaskText.length > 50 ? cleanTaskText.substring(0, 50) + '...' : cleanTaskText,
                 description: cleanTaskText,
                 assignees: assignees,
-                state: 'todo'
+                add_users: assignees, // This is the key field for actually assigning users!
+                subtask: false
             }
         };
         
@@ -789,35 +806,53 @@ ${threadText}`;
             taskPayload.tasks.conversation = conversationId;
         }
         
-        console.log('📦 Task payload:', taskPayload);
+        console.log('📦 Final task payload with correct format:', JSON.stringify(taskPayload, null, 2));
         
         // Make REST API call to create task with assignment
-        const result = await this.makeRestApiCall('POST', '/v1/tasks', taskPayload);
-        console.log('✅ Task created and assigned via REST API');
-        
-        // Also assign the conversation to ensure visibility
-        console.log('🎯 Assigning conversation for additional visibility...');
-        await this.assignConversationToCurrentUser();
-        
-        if (assigneeName && assigneeName.toLowerCase() !== 'you' && assigneeName.toLowerCase() !== 'me') {
-            await this.assignTaskToUser(assigneeName);
-        }
-        
-        // Show success state
-        let successText;
-        if (assigneeName && assigneeName.toLowerCase() !== 'you' && assigneeName.toLowerCase() !== 'me') {
-            if (shouldAutoAssign) {
-                successText = `✓ Task assigned to you + ${assigneeName}!`;
-            } else {
-                successText = `✓ Task assigned to ${assigneeName}!`;
+        try {
+            const result = await this.makeRestApiCall('POST', '/v1/tasks', taskPayload);
+            console.log('✅ Task created and assigned via REST API');
+            console.log('📋 REST API response:', result);
+            
+            // Check if the response includes task assignment confirmation
+            if (result && result.tasks) {
+                console.log('🎯 Created task details:', {
+                    id: result.tasks.id,
+                    title: result.tasks.title,
+                    description: result.tasks.description,
+                    assignees: result.tasks.assignees,
+                    add_users: result.tasks.add_users
+                });
             }
-        } else {
-            successText = shouldAutoAssign ? '✓ Task assigned to you!' : '✓ Task created!';
+            
+            // Also assign the conversation to ensure visibility
+            console.log('🎯 Assigning conversation for additional visibility...');
+            await this.assignConversationToCurrentUser();
+            
+            if (assigneeName && assigneeName.toLowerCase() !== 'you' && assigneeName.toLowerCase() !== 'me') {
+                await this.assignTaskToUser(assigneeName);
+            }
+            
+            // Show success state
+            let successText;
+            if (assigneeName && assigneeName.toLowerCase() !== 'you' && assigneeName.toLowerCase() !== 'me') {
+                if (shouldAutoAssign) {
+                    successText = `✓ Task assigned to you + ${assigneeName}!`;
+                } else {
+                    successText = `✓ Task assigned to ${assigneeName}!`;
+                }
+            } else {
+                successText = shouldAutoAssign ? '✓ Task assigned to you!' : '✓ Task created!';
+            }
+            buttonElement.textContent = successText;
+            buttonElement.classList.add('task-created');
+            
+            return result;
+        } catch (restApiError) {
+            console.error('❌ REST API task creation failed:', restApiError);
+            console.error('📦 Failed payload was:', JSON.stringify(taskPayload, null, 2));
+            throw restApiError;
         }
-        buttonElement.textContent = successText;
-        buttonElement.classList.add('task-created');
-        
-        return result;
     }
 
     /**
