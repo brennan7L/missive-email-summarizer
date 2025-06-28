@@ -642,17 +642,13 @@ ${threadText}`;
             const cleanTaskText = assigneeName ? taskText : this.parseTaskAssignee(taskText).cleanTaskText;
             console.log('✂️ Clean task text:', cleanTaskText);
             
-            // Try REST API approach first (supports proper task assignment)
-            try {
-                console.log('🚀 Attempting REST API task creation with assignment...');
-                await this.createTaskWithRestAPI(cleanTaskText, assigneeName, buttonElement);
-                console.log('✅ REST API task creation successful!');
-            } catch (restError) {
-                console.log('⚠️ REST API failed, falling back to JavaScript API:', restError.message);
-                
-                // Fallback to JavaScript API approach
-                await this.createTaskWithJavaScriptAPI(taskText, buttonElement);
-            }
+            // Temporarily disable REST API due to Missive API serialization errors
+            // TODO: Re-enable once Missive API issues are resolved
+            console.log('⚠️ REST API temporarily disabled due to Missive API serialization errors');
+            console.log('🔄 Using JavaScript API + conversation assignment approach...');
+            
+            // Use JavaScript API approach
+            await this.createTaskWithJavaScriptAPI(taskText, buttonElement);
             
             console.log('🎉 Task creation complete:', cleanTaskText);
             console.log('🎯 === END TASK DEBUG ===');
@@ -805,6 +801,12 @@ ${threadText}`;
             window.MissiveConfig.apiToken !== 'missive_pat-your_actual_token_here') {
             token = window.MissiveConfig.apiToken;
             source = 'MissiveConfig (config.js)';
+        }
+        
+        // 1b. Check URL parameters (for Netlify deployment)
+        else if (this.getUrlParameter('missive_api_token') || this.getUrlParameter('api_token')) {
+            token = this.getUrlParameter('missive_api_token') || this.getUrlParameter('api_token');
+            source = 'URL parameters';
         }
         
         // 2. Check global variable (legacy support)
@@ -976,6 +978,14 @@ ${threadText}`;
 
         // No assignee found, return original text
         return { assigneeName: null, cleanTaskText: taskText };
+    }
+
+    /**
+     * Get URL parameter value
+     */
+    getUrlParameter(paramName) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(paramName);
     }
 
     /**
