@@ -329,11 +329,12 @@ ${threadText}`;
     }
 
     /**
-     * Set up expand all / collapse all button event listeners
+     * Set up expand all / collapse all / add all comments button event listeners
      */
     setupSummaryControls() {
         const expandAllBtn = document.getElementById('expand-all-btn');
         const collapseAllBtn = document.getElementById('collapse-all-btn');
+        const addAllCommentsBtn = document.getElementById('add-all-comments-btn');
 
         if (expandAllBtn) {
             expandAllBtn.addEventListener('click', () => {
@@ -344,6 +345,12 @@ ${threadText}`;
         if (collapseAllBtn) {
             collapseAllBtn.addEventListener('click', () => {
                 this.collapseAllSections();
+            });
+        }
+
+        if (addAllCommentsBtn) {
+            addAllCommentsBtn.addEventListener('click', () => {
+                this.addAllSectionsAsComments(addAllCommentsBtn);
             });
         }
     }
@@ -1332,6 +1339,115 @@ ${threadText}`;
                 buttonElement.classList.remove('comment-error');
             }, 3000);
         }
+    }
+
+    /**
+     * Add all sections as comments to the conversation
+     */
+    async addAllSectionsAsComments(buttonElement) {
+        try {
+            console.log('🗨️ Adding all sections as comments...');
+            
+            // Disable button and show loading state
+            buttonElement.disabled = true;
+            buttonElement.textContent = '💬 Posting Comments...';
+            buttonElement.classList.add('comments-posting');
+            
+            // Get all sections from the summary
+            const sections = this.elements.summarySection.querySelectorAll('.summary-section');
+            
+            if (sections.length === 0) {
+                throw new Error('No sections found to comment');
+            }
+            
+            let successCount = 0;
+            let errorCount = 0;
+            
+            // Post each section as a separate comment
+            for (let i = 0; i < sections.length; i++) {
+                const section = sections[i];
+                const headerElement = section.querySelector('.section-header');
+                const contentElement = section.querySelector('.section-content');
+                
+                if (headerElement && contentElement) {
+                    const title = headerElement.querySelector('span').textContent.trim();
+                    const contentHtml = contentElement.innerHTML;
+                    
+                    // Convert HTML back to plain text for the comment
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = contentHtml;
+                    const content = tempDiv.textContent || tempDiv.innerText || '';
+                    
+                    try {
+                        // Small delay between comments to avoid overwhelming the API
+                        if (i > 0) {
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                        }
+                        
+                        console.log(`📤 Posting section ${i + 1}/${sections.length}: ${title}`);
+                        await this.postSectionAsCommentInternal(title, content);
+                        successCount++;
+                    } catch (error) {
+                        console.error(`❌ Failed to post section "${title}":`, error);
+                        errorCount++;
+                    }
+                }
+            }
+            
+            // Show final result
+            if (errorCount === 0) {
+                buttonElement.textContent = `✅ Posted ${successCount} Comments!`;
+                buttonElement.classList.remove('comments-posting');
+                buttonElement.classList.add('comments-posted');
+                console.log(`🎉 Successfully posted ${successCount} comments`);
+            } else {
+                buttonElement.textContent = `⚠️ Posted ${successCount}/${sections.length}`;
+                buttonElement.classList.remove('comments-posting');
+                buttonElement.classList.add('comments-error');
+                console.log(`⚠️ Posted ${successCount} comments, ${errorCount} failed`);
+            }
+            
+            // Reset button after delay
+            setTimeout(() => {
+                buttonElement.disabled = false;
+                buttonElement.textContent = '💬 Add All Comments';
+                buttonElement.classList.remove('comments-posting', 'comments-posted', 'comments-error');
+            }, 3000);
+            
+        } catch (error) {
+            console.error('❌ Failed to add all comments:', error);
+            
+            // Show error state
+            buttonElement.textContent = '❌ Failed';
+            buttonElement.classList.remove('comments-posting');
+            buttonElement.classList.add('comments-error');
+            
+            // Reset button after delay
+            setTimeout(() => {
+                buttonElement.disabled = false;
+                buttonElement.textContent = '💬 Add All Comments';
+                buttonElement.classList.remove('comments-posting', 'comments-posted', 'comments-error');
+            }, 3000);
+        }
+    }
+
+    /**
+     * Internal method to post a section as comment (shared logic)
+     */
+    async postSectionAsCommentInternal(title, content) {
+        // Check if Missive API is available
+        if (typeof Missive === 'undefined') {
+            throw new Error('Missive API not available');
+        }
+
+        // Format the comment with title and content
+        const commentText = `**${title}**\n\n${content}`;
+        
+        console.log('📝 Formatted comment:', commentText);
+        
+        // Post the comment using Missive API
+        await Missive.createComment(commentText, false);
+        console.log('✅ Comment posted successfully');
     }
 
     /**
