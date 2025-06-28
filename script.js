@@ -857,21 +857,39 @@ ${threadText}`;
         }
         
         console.log(`🌐 Making REST API call: ${method} ${url}`);
-        console.log('📦 Payload:', payload);
+        console.log('📦 Payload:', JSON.stringify(payload, null, 2));
+        console.log('🔧 Request headers:', options.headers);
         
-        const response = await fetch(url, options);
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`REST API call failed: ${response.status} ${response.statusText} - ${errorText}`);
-        }
-        
-        const result = response.headers.get('content-type')?.includes('application/json') 
-            ? await response.json() 
-            : await response.text();
+        try {
+            const response = await fetch(url, options);
+            console.log('📡 Response status:', response.status, response.statusText);
+            console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
             
-        console.log('✅ REST API response:', result);
-        return result;
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('❌ REST API error response:', errorText);
+                throw new Error(`REST API call failed: ${response.status} ${response.statusText} - ${errorText}`);
+            }
+            
+            const contentType = response.headers.get('content-type');
+            console.log('📄 Response content-type:', contentType);
+            
+            const result = contentType?.includes('application/json') 
+                ? await response.json() 
+                : await response.text();
+                
+            console.log('✅ REST API response:', result);
+            return result;
+        } catch (fetchError) {
+            console.error('❌ Fetch error during REST API call:', fetchError);
+            console.error('📦 Failed request details:', {
+                method,
+                url,
+                headers: options.headers,
+                payload: JSON.stringify(payload, null, 2)
+            });
+            throw fetchError;
+        }
     }
 
     /**
@@ -939,12 +957,34 @@ ${threadText}`;
      */
     async getCurrentConversationId() {
         try {
-            // In the Missive iframe context, we can get the conversation ID from the URL or context
-            // This is a simplified approach - you might need to adjust based on actual implementation
-            const conversations = await Missive.fetchConversations();
-            if (conversations && conversations.length > 0) {
-                return conversations[0].id;
+            // Method 1: Use stored conversation ID from our conversation tracking
+            if (this.currentConversationId) {
+                console.log('📧 Using stored conversation ID:', this.currentConversationId);
+                return this.currentConversationId;
             }
+            
+            // Method 2: Try to get from URL hash (more reliable than fetchConversations)
+            const hash = window.location.hash;
+            const conversationMatch = hash.match(/conversations\/([a-f0-9-]+)/);
+            if (conversationMatch) {
+                const conversationId = conversationMatch[1];
+                console.log('📧 Extracted conversation ID from URL:', conversationId);
+                return conversationId;
+            }
+            
+            // Method 3: Try fetchConversations as fallback (but this might cause serialization errors)
+            try {
+                console.log('📧 Attempting to fetch conversations...');
+                const conversations = await Missive.fetchConversations();
+                if (conversations && conversations.length > 0) {
+                    console.log('📧 Got conversation from fetchConversations:', conversations[0].id);
+                    return conversations[0].id;
+                }
+            } catch (fetchError) {
+                console.warn('⚠️ fetchConversations failed (serialization issue?):', fetchError);
+            }
+            
+            console.log('📧 No conversation ID found, will create standalone task');
             return null;
         } catch (error) {
             console.error('❌ Failed to get current conversation ID:', error);
