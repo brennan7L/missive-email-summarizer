@@ -673,8 +673,21 @@ ${threadText}`;
             console.log('👤 Assignee name:', assigneeName);
             console.log('🔧 Auto-assign enabled:', shouldAutoAssign);
             
-            // REST API temporarily disabled - using JavaScript API which is working well
-            console.log('🔄 Using JavaScript API (REST API temporarily disabled for stability)...');
+            // Try REST API first if we have an API token
+            const apiToken = this.getMissiveApiToken();
+            if (apiToken && shouldAutoAssign) {
+                console.log('🌐 API token available - attempting REST API with task assignment...');
+                try {
+                    const result = await this.createTaskWithRestAPI(cleanTaskText, assigneeName, buttonElement);
+                    console.log('✅ REST API task creation successful');
+                    return;
+                } catch (restError) {
+                    console.error('❌ REST API failed:', restError);
+                    console.warn('⚠️ Falling back to JavaScript API (which may not assign properly)');
+                }
+            } else {
+                console.log('⚠️ No API token available - using JavaScript API fallback');
+            }
             
             // Use JavaScript API approach
             await this.createTaskWithJavaScriptAPI(taskText, buttonElement);
