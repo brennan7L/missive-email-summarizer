@@ -340,6 +340,143 @@
     border-color: rgba(239, 68, 68, 0.4);
 }
 
+/* Tone Gauge Styling */
+.tone-gauge-container {
+    margin-bottom: 20px;
+}
+
+.tone-gauge {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 16px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.tone-gauge-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.tone-icon {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.tone-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color, #ffffff);
+    opacity: 0.9;
+    letter-spacing: 0.5px;
+}
+
+.tone-gauge-bar {
+    position: relative;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tone-gauge-fill {
+    height: 100%;
+    border-radius: 12px;
+    position: relative;
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        0 2px 8px rgba(0, 0, 0, 0.15);
+    animation: toneGaugeGlow 2s ease-in-out infinite alternate;
+}
+
+.tone-text {
+    font-size: 12px;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    letter-spacing: 0.5px;
+    position: relative;
+    z-index: 1;
+}
+
+/* Tone-specific styling */
+.tone-happy {
+    background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+}
+
+.tone-satisfied {
+    background: linear-gradient(135deg, #84cc16, #65a30d) !important;
+}
+
+.tone-neutral {
+    background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+}
+
+.tone-frustrated {
+    background: linear-gradient(135deg, #f97316, #ea580c) !important;
+}
+
+.tone-angry {
+    background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+}
+
+@keyframes toneGaugeGlow {
+    0% {
+        box-shadow: 
+            inset 0 1px 0 rgba(255, 255, 255, 0.2),
+            0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+    100% {
+        box-shadow: 
+            inset 0 1px 0 rgba(255, 255, 255, 0.3),
+            0 4px 16px rgba(0, 0, 0, 0.25),
+            0 0 12px currentColor;
+    }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+    .tone-gauge {
+        background: rgba(0, 0, 0, 0.3);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .tone-gauge-bar {
+        background: rgba(0, 0, 0, 0.2);
+    }
+}
+
+/* Responsive design for tone gauge */
+@media (max-width: 480px) {
+    .tone-gauge {
+        padding: 12px;
+    }
+    
+    .tone-gauge-header {
+        margin-bottom: 8px;
+    }
+    
+    .tone-label {
+        font-size: 13px;
+    }
+    
+    .tone-gauge-bar {
+        height: 20px;
+    }
+    
+    .tone-text {
+        font-size: 11px;
+    }
+}
+
 .summary-section {
     margin-bottom: 16px;
     border: 1px solid var(--border-color, #e1e1e1);

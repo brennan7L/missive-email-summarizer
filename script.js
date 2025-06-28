@@ -256,7 +256,13 @@ class EmailSummarizer {
         ).join('\n');
 
         const prompt = `Act as a professional business communication analyst.
-Read the following email thread and extract the key points, decisions, action items, deadlines, and important context. Summarize them in a concise bullet-point format, grouped by category if needed (e.g., Action Items, Key Decisions, Deadlines, Open Questions, etc.).
+
+FIRST, analyze the tone of the following email thread and classify it into one of these categories:
+Happy, Satisfied, Neutral, Frustrated, or Angry.
+
+Start your response with: "TONE: [category]"
+
+THEN, read the email thread and extract the key points, decisions, action items, deadlines, and important context. Summarize them in a concise bullet-point format, grouped by category if needed (e.g., Action Items, Key Decisions, Deadlines, Open Questions, etc.).
 
 Ensure that your summary:
 • Omits unnecessary conversational or filler content
@@ -297,18 +303,25 @@ ${threadText}`;
     }
 
     /**
-     * Display the generated summary with collapsible sections
+     * Display the generated summary with collapsible sections and tone analysis
      */
     displaySummary(summaryText) {
         try {
-            const sections = this.parseSummaryIntoSections(summaryText);
+            // Extract tone from the summary text
+            const { tone, cleanedSummary } = this.extractTone(summaryText);
+            
+            // Display tone gauge
+            this.displayToneGauge(tone);
+            
+            // Parse and display summary sections
+            const sections = this.parseSummaryIntoSections(cleanedSummary);
             this.elements.summarySection.innerHTML = '';
 
             if (sections.length === 0) {
                 // If no sections found, display as single block
                 sections.push({
                     title: 'Summary',
-                    content: summaryText
+                    content: cleanedSummary
                 });
             }
 
@@ -326,6 +339,108 @@ ${threadText}`;
             console.error('Error displaying summary:', error);
             this.showError('Failed to display summary.');
         }
+    }
+
+    /**
+     * Extract tone from AI response and return cleaned summary
+     */
+    extractTone(summaryText) {
+        // Look for TONE: [category] at the beginning of the response
+        const toneMatch = summaryText.match(/^TONE:\s*(Happy|Satisfied|Neutral|Frustrated|Angry)/i);
+        
+        if (toneMatch) {
+            const tone = toneMatch[1];
+            // Remove the tone line from the summary
+            const cleanedSummary = summaryText.replace(/^TONE:\s*\w+\s*\n?/i, '').trim();
+            return { tone, cleanedSummary };
+        }
+        
+        // Default to Neutral if no tone found
+        return { tone: 'Neutral', cleanedSummary: summaryText };
+    }
+
+    /**
+     * Display the tone gauge above the summary controls
+     */
+    displayToneGauge(tone) {
+        // Remove existing tone gauge if present
+        const existingGauge = document.querySelector('.tone-gauge-container');
+        if (existingGauge) {
+            existingGauge.remove();
+        }
+
+        // Create tone gauge container
+        const gaugeContainer = document.createElement('div');
+        gaugeContainer.className = 'tone-gauge-container';
+        gaugeContainer.innerHTML = this.createToneGaugeHTML(tone);
+
+        // Insert before the summary controls
+        const summaryControls = document.querySelector('.summary-controls');
+        if (summaryControls) {
+            summaryControls.parentNode.insertBefore(gaugeContainer, summaryControls);
+        }
+    }
+
+    /**
+     * Create tone gauge HTML with proper styling and color coding
+     */
+    createToneGaugeHTML(tone) {
+        const toneConfig = this.getToneConfiguration(tone);
+        
+        return `
+            <div class="tone-gauge">
+                <div class="tone-gauge-header">
+                    <span class="tone-icon">${toneConfig.icon}</span>
+                    <span class="tone-label">Customer Tone</span>
+                </div>
+                <div class="tone-gauge-bar">
+                    <div class="tone-gauge-fill ${toneConfig.className}" 
+                         style="width: ${toneConfig.intensity}%; background-color: ${toneConfig.color};">
+                        <span class="tone-text">${tone}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Get tone configuration including colors, icons, and intensity
+     */
+    getToneConfiguration(tone) {
+        const configurations = {
+            'Happy': {
+                color: '#22c55e',
+                className: 'tone-happy',
+                icon: '😊',
+                intensity: 100
+            },
+            'Satisfied': {
+                color: '#84cc16',
+                className: 'tone-satisfied', 
+                icon: '🙂',
+                intensity: 80
+            },
+            'Neutral': {
+                color: '#f59e0b',
+                className: 'tone-neutral',
+                icon: '😐',
+                intensity: 60
+            },
+            'Frustrated': {
+                color: '#f97316',
+                className: 'tone-frustrated',
+                icon: '😤',
+                intensity: 40
+            },
+            'Angry': {
+                color: '#ef4444',
+                className: 'tone-angry',
+                icon: '😠',
+                intensity: 20
+            }
+        };
+
+        return configurations[tone] || configurations['Neutral'];
     }
 
     /**
