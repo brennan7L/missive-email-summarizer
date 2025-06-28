@@ -610,11 +610,15 @@ ${threadText}`;
         const sectionDiv = document.createElement('div');
         sectionDiv.className = 'summary-section';
 
+        // Count items in the section
+        const itemCount = this.countSectionItems(content);
+
         const headerDiv = document.createElement('div');
         headerDiv.className = `section-header ${isExpanded ? '' : 'collapsed'}`;
         headerDiv.innerHTML = `
-            <span>${title}</span>
+            <span class="section-title">${title}</span>
             <div class="header-buttons">
+                <span class="item-count">${itemCount}</span>
                 <button class="comment-section-btn" title="Post this section as a comment in Missive" data-section-title="${this.escapeHtml(title)}" data-section-content="${this.escapeHtml(content)}">
                     💬
                 </button>
@@ -661,6 +665,18 @@ ${threadText}`;
         sectionDiv.appendChild(contentDiv);
 
         return sectionDiv;
+    }
+
+    /**
+     * Count the number of items in a section
+     */
+    countSectionItems(content) {
+        const lines = content.split('\n').filter(line => {
+            const trimmed = line.trim();
+            return trimmed && !trimmed.match(/^\*\*[^*]+\*\*:?\s*$/); // Exclude person headers
+        });
+        
+        return lines.length;
     }
 
     /**
