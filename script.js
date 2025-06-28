@@ -680,23 +680,7 @@ ${threadText}`;
             console.log('🔍 === TASK CREATION DEBUG ===');
             console.log('📝 Clean task text:', cleanTaskText);
             console.log('👤 Assignee name:', assigneeName);
-            console.log('🔧 Current user ID:', currentUser.id);
             console.log('🔧 Auto-assign enabled:', shouldAutoAssign);
-            
-            if (shouldAutoAssign) {
-                const organizationId = currentUser.organization_id || currentUser.organization?.id;
-                console.log('📦 CORRECT REST API payload format:', {
-                    tasks: {
-                        organization: organizationId,
-                        title: cleanTaskText.length > 50 ? cleanTaskText.substring(0, 50) + '...' : cleanTaskText,
-                        description: cleanTaskText,
-                        assignees: assignees,
-                        add_users: assignees, // Key field for assignment!
-                        conversation: this.currentConversationId || 'unknown',
-                        subtask: false
-                    }
-                });
-            }
             
             // Try REST API first if we have an API token
             const apiToken = this.getMissiveApiToken();
@@ -1569,7 +1553,7 @@ ${threadText}`;
         console.log('📝 Formatted comment:', commentText);
         
         // Post the comment using Missive API
-        await Missive.createComment(commentText, false);
+        await Missive.comment(commentText);
         console.log('✅ Comment posted successfully');
     }
 
