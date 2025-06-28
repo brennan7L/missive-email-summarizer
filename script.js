@@ -661,10 +661,53 @@ ${threadText}`;
             const cleanTaskText = assigneeName ? taskText : this.parseTaskAssignee(taskText).cleanTaskText;
             console.log('✂️ Clean task text:', cleanTaskText);
             
-            // Temporarily disable REST API due to Missive API serialization errors
-            // TODO: Re-enable once Missive API issues are resolved
-            console.log('⚠️ REST API temporarily disabled due to Missive API serialization errors');
-            console.log('🔄 Using JavaScript API + conversation assignment approach...');
+            // Check if we should auto-assign tasks to current user (configurable)
+            const shouldAutoAssign = window.MissiveConfig?.autoAssignToCurrentUser !== false;
+            
+            // Prepare assignees array for debugging
+            let assignees = [];
+            if (shouldAutoAssign) {
+                assignees.push(currentUser.id);
+            }
+            if (assigneeName && assigneeName.toLowerCase() !== 'you' && assigneeName.toLowerCase() !== 'me') {
+                const specificUserId = this.getUserIdFromName(assigneeName);
+                if (specificUserId && specificUserId !== currentUser.id) {
+                    assignees.push(specificUserId);
+                }
+            }
+            
+            // Debug: Show what the REST API payload would look like
+            console.log('🔍 === TASK CREATION DEBUG ===');
+            console.log('📝 Clean task text:', cleanTaskText);
+            console.log('👤 Assignee name:', assigneeName);
+            console.log('🔧 Current user ID:', currentUser.id);
+            console.log('🔧 Auto-assign enabled:', shouldAutoAssign);
+            
+            if (shouldAutoAssign) {
+                console.log('📦 REST API payload would be:', {
+                    tasks: {
+                        description: cleanTaskText,
+                        assignees: assignees,
+                        state: 'todo',
+                        conversation: this.currentConversationId || 'unknown'
+                    }
+                });
+            }
+            
+            // Try REST API first if we have an API token
+            const apiToken = this.getMissiveApiToken();
+            if (apiToken && assignees.length > 0) {
+                console.log('🌐 API token available - attempting REST API with task assignment...');
+                try {
+                    const result = await this.createTaskWithRestAPI(cleanTaskText, assigneeName, buttonElement);
+                    console.log('✅ REST API task creation successful');
+                    return;
+                } catch (restError) {
+                    console.warn('⚠️ REST API failed, falling back to JavaScript API:', restError);
+                }
+            } else {
+                console.log('⚠️ No API token or no assignees - using JavaScript API fallback');
+            }
             
             // Use JavaScript API approach
             await this.createTaskWithJavaScriptAPI(taskText, buttonElement);
@@ -926,6 +969,14 @@ ${threadText}`;
         
         // Create the task using Missive API
         console.log('📋 Creating task in Missive...');
+        console.log('🔍 === JAVASCRIPT API TASK CREATION ===');
+        console.log('📝 Task text:', cleanTaskText);
+        console.log('👤 Current user:', {
+            id: currentUser.id,
+            name: currentUser.display_name,
+            email: currentUser.email
+        });
+        
         await Missive.createTask(cleanTaskText, false);
         console.log('✅ Task created in Missive');
         
@@ -935,17 +986,27 @@ ${threadText}`;
         if (shouldAutoAssign) {
             // Assign the task to current user (YOU) by default
             console.log('🎯 Auto-assigning task to you (current user)...');
+            console.log('🔧 Calling Missive.addAssignees with:', [currentUser.id]);
             try {
-                await Missive.addAssignees([currentUser.id]);
+                const assignResult = await Missive.addAssignees([currentUser.id]);
+                console.log('✅ Task assignment result:', assignResult);
                 console.log('✅ Task successfully assigned to you!');
             } catch (error) {
-                console.warn('⚠️ Could not assign task to current user via addAssignees, trying alternative approach:', error);
+                console.warn('⚠️ Could not assign task to current user via addAssignees:', error);
+                console.warn('⚠️ Error details:', {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack
+                });
+                console.log('🔄 Trying alternative approach: conversation assignment...');
                 // Alternative: assign the conversation which should make tasks visible
                 await this.assignConversationToCurrentUser();
             }
         } else {
             console.log('ℹ️ Auto-assignment disabled in config, task will remain unassigned unless specifically assigned');
         }
+        
+        console.log('🔍 === END JAVASCRIPT API TASK CREATION ===');
         
         // If a specific additional assignee was detected, also assign to them
         if (assigneeName && assigneeName.toLowerCase() !== 'you' && assigneeName.toLowerCase() !== 'me') {
@@ -971,6 +1032,33 @@ ${threadText}`;
         }
         buttonElement.textContent = successText;
         buttonElement.classList.add('task-created');
+        
+        // Debug: Try to fetch and show current tasks to verify assignment
+        console.log('🔍 Attempting to fetch current tasks to verify assignment...');
+        try {
+            const tasks = await Missive.fetchTasks();
+            console.log('📋 Current tasks:', tasks);
+            
+            // Look for the task we just created
+            const recentTask = tasks.find(task => 
+                task.description === cleanTaskText || 
+                task.description.includes(cleanTaskText.substring(0, 20))
+            );
+            
+            if (recentTask) {
+                console.log('🎯 Found recently created task:', {
+                    id: recentTask.id,
+                    description: recentTask.description,
+                    assignees: recentTask.assignees,
+                    state: recentTask.state,
+                    conversation: recentTask.conversation
+                });
+            } else {
+                console.log('⚠️ Could not find the recently created task in task list');
+            }
+        } catch (taskFetchError) {
+            console.warn('⚠️ Could not fetch tasks for verification:', taskFetchError);
+        }
         
         console.log('🎉 JavaScript API task creation complete:', cleanTaskText);
     }
