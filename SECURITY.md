@@ -158,3 +158,5 @@ ls -la config.js
 - Check the browser console for detailed error messages
 - Verify your setup with the troubleshooting steps above
 - Review Missive's API documentation for token requirements 
+
+🔑 Using API token from: Environment Variables (Netlify) 

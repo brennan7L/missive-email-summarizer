@@ -6,7 +6,7 @@
   "scripts": {
     "start": "python -m http.server 8000",
     "dev": "python -m http.server 8000",
-    "build": "echo 'Static files - no build required'",
+    "build": "./build.sh",
     "test": "echo 'No tests configured'"
   },
   "keywords": [
