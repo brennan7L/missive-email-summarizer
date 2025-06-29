@@ -390,6 +390,86 @@ ${threadText}`;
         if (summaryControls) {
             summaryControls.parentNode.insertBefore(gaugeContainer, summaryControls);
         }
+        
+        // Set up tooltip functionality
+        this.setupConfidenceTooltip();
+    }
+
+    /**
+     * Set up confidence tooltip functionality
+     */
+    setupConfidenceTooltip() {
+        const confidenceInfo = document.querySelector('.confidence-info[data-tooltip]');
+        if (!confidenceInfo) return;
+
+        let tooltip = null;
+
+        // Create tooltip element
+        const createTooltip = (text) => {
+            tooltip = document.createElement('div');
+            tooltip.className = 'confidence-tooltip';
+            tooltip.textContent = text;
+            document.body.appendChild(tooltip);
+            return tooltip;
+        };
+
+        // Position tooltip
+        const positionTooltip = (e) => {
+            if (!tooltip) return;
+            
+            const rect = confidenceInfo.getBoundingClientRect();
+            const tooltipRect = tooltip.getBoundingClientRect();
+            
+            // Position above the element, centered
+            let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+            let top = rect.top - tooltipRect.height - 8;
+            
+            // Keep tooltip in viewport
+            if (left < 8) left = 8;
+            if (left + tooltipRect.width > window.innerWidth - 8) {
+                left = window.innerWidth - tooltipRect.width - 8;
+            }
+            if (top < 8) {
+                top = rect.bottom + 8; // Show below if no room above
+            }
+            
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
+        };
+
+        // Show tooltip on hover
+        confidenceInfo.addEventListener('mouseenter', (e) => {
+            const tooltipText = confidenceInfo.getAttribute('data-tooltip');
+            if (tooltipText) {
+                createTooltip(tooltipText);
+                positionTooltip(e);
+                
+                // Fade in
+                requestAnimationFrame(() => {
+                    tooltip.classList.add('visible');
+                });
+            }
+        });
+
+        // Hide tooltip on leave
+        confidenceInfo.addEventListener('mouseleave', () => {
+            if (tooltip) {
+                tooltip.classList.remove('visible');
+                setTimeout(() => {
+                    if (tooltip && tooltip.parentNode) {
+                        tooltip.parentNode.removeChild(tooltip);
+                    }
+                    tooltip = null;
+                }, 200);
+            }
+        });
+
+        // Update position on window resize
+        window.addEventListener('resize', () => {
+            if (tooltip) {
+                positionTooltip();
+            }
+        });
     }
 
     /**
@@ -406,9 +486,9 @@ ${threadText}`;
                         <span class="tone-icon">${toneConfig.icon}</span>
                         <span class="tone-label">Customer Tone</span>
                     </div>
-                    <div class="confidence-info">
+                    <div class="confidence-info" data-tooltip="${this.escapeHtml(confidenceLevel.explanation)}">
                         <span class="confidence-indicator ${confidenceLevel.className}">${confidenceLevel.icon}</span>
-                        <span class="confidence-text">${confidence}% confidence</span>
+                        <span class="confidence-text" title="Click for details">${confidence}% confidence</span>
                     </div>
                 </div>
                 <div class="tone-gauge-bar">
@@ -468,22 +548,30 @@ ${threadText}`;
         if (confidence >= 90) {
             return {
                 className: 'confidence-very-high',
-                icon: '🎯'
+                icon: '🎯',
+                label: 'Very High',
+                explanation: 'The AI is highly confident in this tone assessment based on clear emotional language, strong sentiment indicators, and consistent patterns throughout the conversation.'
             };
         } else if (confidence >= 75) {
             return {
                 className: 'confidence-high',
-                icon: '✓'
+                icon: '✓',
+                label: 'High',
+                explanation: 'The AI found strong indicators for this tone with clear emotional cues and sentiment patterns, though some ambiguity may exist.'
             };
         } else if (confidence >= 50) {
             return {
                 className: 'confidence-medium',
-                icon: '~'
+                icon: '~',
+                label: 'Medium',
+                explanation: 'The tone assessment is based on moderate indicators. Mixed signals or neutral language may make the emotional state less clear.'
             };
         } else {
             return {
                 className: 'confidence-low',
-                icon: '?'
+                icon: '?',
+                label: 'Low',
+                explanation: 'The AI found limited or conflicting emotional indicators. The tone may be very neutral, or the conversation may contain mixed signals.'
             };
         }
     }
