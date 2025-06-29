@@ -629,6 +629,7 @@ ${threadText}`;
      * Parse summary text into sections
      */
     parseSummaryIntoSections(text) {
+        console.log('🔍 Starting to parse summary text:', text.substring(0, 200) + '...');
         const sections = [];
         const lines = text.split('\n');
         let currentSection = null;
@@ -639,21 +640,26 @@ ${threadText}`;
             
             // Check if this line looks like a section header
             if (this.isSectionHeader(trimmedLine)) {
+                console.log('✅ Found section header:', trimmedLine);
+                
                 // Save previous section
                 if (currentSection) {
                     sections.push({
                         title: currentSection,
                         content: currentContent.join('\n').trim()
                     });
+                    console.log('💾 Saved section:', currentSection, 'with', currentContent.length, 'lines');
                 }
                 
                 // Start new section
                 currentSection = trimmedLine.replace(/[\*:#]/g, '').trim();
                 currentContent = [];
+                console.log('🆕 Started new section:', currentSection);
             } else if (trimmedLine && currentSection) {
                 currentContent.push(line);
             } else if (trimmedLine && !currentSection) {
                 // Content before any section headers
+                console.log('📝 Content before headers:', trimmedLine);
                 if (!sections.length) {
                     sections.push({
                         title: 'Summary',
@@ -672,7 +678,13 @@ ${threadText}`;
                 title: currentSection,
                 content: currentContent.join('\n').trim()
             });
+            console.log('💾 Saved final section:', currentSection, 'with', currentContent.length, 'lines');
         }
+
+        console.log('📊 Total sections found:', sections.length);
+        sections.forEach((section, idx) => {
+            console.log(`Section ${idx + 1}: "${section.title}" (${section.content.split('\n').length} lines)`);
+        });
 
         return sections.filter(section => section.content.trim());
     }
@@ -682,13 +694,34 @@ ${threadText}`;
      */
     isSectionHeader(line) {
         const headerPatterns = [
+            // Standard section names at start of line
             /^(action items?|key decisions?|deadlines?|open questions?|important context|summary|overview|next steps?|follow.?up)/i,
+            // Text followed by colon (e.g., "Action Items:")
             /^[a-z\s]+:$/i,
+            // Markdown headers
             /^#+\s+/,
-            /^\*\*[^*]+\*\*$/
+            // Bold text without colon (e.g., "**Action Items**")
+            /^\*\*[^*]+\*\*$/,
+            // Bold text with colon inside (e.g., "**Action Items:**")
+            /^\*\*[^*:]+:[^*]*\*\*$/,
+            // Additional common section patterns
+            /^(participants?|summary of key points?|key points?)/i
         ];
         
-        return headerPatterns.some(pattern => pattern.test(line));
+        console.log('🔍 Testing if header:', JSON.stringify(line));
+        const isHeader = headerPatterns.some((pattern, index) => {
+            const matches = pattern.test(line);
+            if (matches) {
+                console.log(`✅ Matched pattern ${index + 1}:`, pattern.toString());
+            }
+            return matches;
+        });
+        
+        if (!isHeader) {
+            console.log('❌ No pattern matched for:', JSON.stringify(line));
+        }
+        
+        return isHeader;
     }
 
     /**
