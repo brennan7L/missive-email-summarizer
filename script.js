@@ -10,7 +10,7 @@ class EmailSummarizer {
         this.currentConversation = null;
         this.loadingInterval = null;
         this.initializeElements();
-        this.openaiApiKey = this.extractApiKey();
+        // No API key needed on client side - using secure server-side proxy
         this.initializeMissiveAPI();
         console.log('EmailSummarizer: Initialization complete');
     }
@@ -2023,10 +2023,7 @@ ${threadText}`;
      * Test manual summary generation (for debugging)
      */
     async testManualSummary() {
-        if (!this.openaiApiKey) {
-            this.showError('OpenAI API key required for testing.');
-            return;
-        }
+        // No API key check needed - using secure server-side proxy
 
         console.log('Testing manual summary generation...');
         this.showLoading();
