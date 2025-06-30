@@ -137,31 +137,22 @@ class EmailSummarizer {
     }
 
     /**
-     * Extract OpenAI API key from URL parameters only (secure approach)
-     * API keys are no longer exposed in public config files
+     * Extract OpenAI API key - now handled securely server-side
+     * No API keys needed on client side for security
      */
     extractApiKey() {
-        // Security note: API keys are no longer embedded in public files
-        // They must be provided via URL parameters for security
+        // Security: API keys are handled server-side via Netlify functions
+        // No client-side API key needed
         
-        const urlParams = new URLSearchParams(window.location.search);
-        const apiKey = urlParams.get('openai_key') || urlParams.get('api_key');
-        
-        if (apiKey) {
-            console.log('API Key check: Found API key from URL parameters');
-            return apiKey;
-        }
-        
-        // Check if config indicates environment variable was available during build
+        // Check if server has API key configured
         if (window.MissiveConfig && window.MissiveConfig.hasOpenaiKey) {
-            console.log('Security Notice: OpenAI API key was configured in environment variables but not exposed in public files for security.');
-            this.showError('For security, API keys are no longer embedded in public files. Please add your OpenAI API key to the URL: ?openai_key=your_key_here');
-            return null;
+            console.log('🔐 API Key: Server-side configuration detected');
+            return 'server-side'; // Placeholder to indicate server has key
         }
         
-        console.log('API Key check: No API key found');
-        this.showError('OpenAI API key required. Please add it to the URL: ?openai_key=your_key_here\n\nFor security, API keys are no longer embedded in the application files.');
-        return null;
+        console.log('⚠️ API Key: No server-side configuration detected');
+        console.log('💡 Ensure OPEN_AI_API environment variable is set in Netlify');
+        return 'server-side'; // Always try server-side first
     }
 
     /**
@@ -257,9 +248,8 @@ class EmailSummarizer {
      * Generate summary using OpenAI API
      */
     async generateSummary(emailThread) {
-        if (!this.openaiApiKey) {
-            throw new Error('OpenAI API key not available');
-        }
+        // No API key needed on client side - using secure server-side proxy
+        console.log('🔐 Using secure server-side API proxy');
 
         // Prepare the email thread text
         const threadText = emailThread.map(msg => 
@@ -274,7 +264,7 @@ Happy, Satisfied, Neutral, Frustrated, or Angry.
 Also provide a confidence score from 1-100 indicating how certain you are about this tone classification. Use these guidelines for confidence scoring:
 • 90-100: Very clear emotional indicators, explicit language, multiple confirming signals
 • 80-89: Strong indicators with some ambiguity or mixed signals
-• 70-79: Moderate indicators, some uncertainty due to professional language masking emotions
+• 70-79: Moderate indicators, some uncertainty due of professional language masking emotions
 • 60-69: Weak indicators, mostly neutral with subtle hints
 • 50-59: Very ambiguous, could be interpreted multiple ways
 • Below 50: Insufficient information or contradictory signals
@@ -293,11 +283,14 @@ Here's the email thread:
 
 ${threadText}`;
 
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        // Use secure server-side proxy endpoint
+        const proxyUrl = `${window.location.origin}/.netlify/functions/openai-proxy`;
+        console.log('🔗 Calling secure proxy:', proxyUrl);
+
+        const response = await fetch(proxyUrl, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.openaiApiKey}`
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 model: 'gpt-4o-mini',
@@ -314,10 +307,12 @@ ${threadText}`;
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(`OpenAI API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+            console.error('Proxy API error:', response.status, errorData);
+            throw new Error(`API error: ${response.status} - ${errorData.error || errorData.details || 'Unknown error'}`);
         }
 
         const data = await response.json();
+        console.log('✅ Secure API call completed successfully');
         return data.choices[0]?.message?.content || 'No summary generated';
     }
 
@@ -1155,57 +1150,44 @@ ${threadText}`;
      * Make a REST API call to Missive
      */
     async makeRestApiCall(method, endpoint, payload = null) {
-        // Get API token from settings or environment
-        const apiToken = this.getMissiveApiToken();
-        if (!apiToken) {
-            throw new Error('No Missive API token available for REST API calls');
-        }
+        // Use secure server-side proxy for Missive API calls
+        console.log('🔐 Using secure server-side Missive API proxy');
         
-        const baseUrl = window.MissiveConfig?.apiBaseUrl || 'https://public.missiveapp.com';
-        const url = `${baseUrl}${endpoint}`;
+        // Use secure server-side proxy endpoint
+        const proxyUrl = `${window.location.origin}/.netlify/functions/missive-proxy${endpoint}`;
+        console.log(`🌐 Making secure REST API call: ${method} ${proxyUrl}`);
+        console.log('📦 Payload:', JSON.stringify(payload, null, 2));
+        
         const options = {
             method: method,
             headers: {
-                'Authorization': `Bearer ${apiToken}`,
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             }
         };
         
-        if (payload && (method === 'POST' || method === 'PATCH')) {
+        if (payload && (method === 'POST' || method === 'PATCH' || method === 'PUT')) {
             options.body = JSON.stringify(payload);
         }
         
-        console.log(`🌐 Making REST API call: ${method} ${url}`);
-        console.log('📦 Payload:', JSON.stringify(payload, null, 2));
-        console.log('🔧 Request headers:', options.headers);
-        
         try {
-            const response = await fetch(url, options);
+            const response = await fetch(proxyUrl, options);
             console.log('📡 Response status:', response.status, response.statusText);
-            console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
             
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error('❌ REST API error response:', errorText);
-                throw new Error(`REST API call failed: ${response.status} ${response.statusText} - ${errorText}`);
+                const errorData = await response.json().catch(() => ({}));
+                console.error('❌ Proxy API error response:', errorData);
+                throw new Error(`Missive API call failed: ${response.status} ${response.statusText} - ${errorData.error || errorData.details || 'Unknown error'}`);
             }
             
-            const contentType = response.headers.get('content-type');
-            console.log('📄 Response content-type:', contentType);
-            
-            const result = contentType?.includes('application/json') 
-                ? await response.json() 
-                : await response.text();
-                
-            console.log('✅ REST API response:', result);
+            const result = await response.json();
+            console.log('✅ Secure Missive API call completed successfully');
             return result;
         } catch (fetchError) {
-            console.error('❌ Fetch error during REST API call:', fetchError);
+            console.error('❌ Fetch error during secure API call:', fetchError);
             console.error('📦 Failed request details:', {
                 method,
-                url,
-                headers: options.headers,
+                proxyUrl,
                 payload: JSON.stringify(payload, null, 2)
             });
             throw fetchError;
@@ -1221,51 +1203,18 @@ ${threadText}`;
      * 3. Go to Missive Settings > API > Create a new token for the token value
      */
     getMissiveApiToken() {
-        // Security: API tokens are no longer embedded in public files
-        // They must be provided via URL parameters for security
+        // Security: API tokens are handled server-side via Netlify functions
+        // No client-side API token needed for REST API calls
         
-        let token = null;
-        let source = 'none';
-        
-        // 1. Check URL parameters (secure method)
-        if (this.getUrlParameter('missive_api_token') || this.getUrlParameter('api_token')) {
-            token = this.getUrlParameter('missive_api_token') || this.getUrlParameter('api_token');
-            source = 'URL parameters';
+        // Check if server has API token configured
+        if (window.MissiveConfig && window.MissiveConfig.hasApiToken) {
+            console.log('🔐 Missive API Token: Server-side configuration detected');
+            return 'server-side'; // Placeholder to indicate server has token
         }
         
-        // 2. Check global variable (legacy support)
-        else if (window.MISSIVE_API_TOKEN) {
-            token = window.MISSIVE_API_TOKEN;
-            source = 'window.MISSIVE_API_TOKEN';
-        }
-        
-        // 3. Check localStorage (legacy support)
-        else if (localStorage.getItem('missive_api_token')) {
-            token = localStorage.getItem('missive_api_token');
-            source = 'localStorage';
-        }
-        
-        // Check if environment variable was available during build but not exposed
-        else if (window.MissiveConfig?.hasApiToken) {
-            console.log('🔐 Security Notice: Missive API token was configured in environment variables but not exposed in public files for security.');
-            console.log('💡 For task assignment functionality, please add the token to the URL:');
-            console.log('   ?missive_api_token=your_token_here');
-            return null;
-        }
-        
-        if (token) {
-            console.log(`🔑 Using API token from: ${source}`);
-            // Only show partial token for security
-            const maskedToken = token.substring(0, 12) + '...' + token.slice(-4);
-            console.log(`🔐 Token: ${maskedToken}`);
-        } else {
-            console.log('⚠️ No API token configured for REST API calls');
-            console.log('💡 For security, API tokens are no longer embedded in application files.');
-            console.log('   Please add your token to the URL: ?missive_api_token=your_token_here');
-            console.log('   Get token from: Missive Settings > API > Create a new token');
-        }
-        
-        return token;
+        console.log('⚠️ Missive API Token: No server-side configuration detected');
+        console.log('💡 Ensure MISSIVE_API_TOKEN environment variable is set in Netlify');
+        return 'server-side'; // Always try server-side first
     }
 
     /**

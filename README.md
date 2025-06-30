@@ -27,24 +27,27 @@ An AI-powered iFrame integration for Missive that provides intelligent summaries
 
 ### 2. OpenAI API Key Setup
 
-🔐 **SECURITY UPDATE**: For security, API keys are no longer embedded in public application files.
+🔐 **SECURE SERVER-SIDE ARCHITECTURE**: API keys are now handled completely server-side for maximum security.
 
 1. Visit [OpenAI API Keys](https://platform.openai.com/api-keys)
 2. Create a new API key
-3. **Use URL Parameter (Secure Method):**
-   - Add to URL: `https://magiceye.netlify.app?openai_key=your_key_here`
-   - Environment variables are validated during build but not exposed publicly
+3. **Set in Netlify Environment Variables:**
+   - Go to Site Settings → Environment Variables
+   - Add `OPEN_AI_API` with your API key value
+   - **API key stays secure on the server** - never exposed to browsers
 
 ### 3. Set Up in Missive
 
 1. Open Missive
 2. Go to Integrations → Add Integration → iFrame
-3. **Add your integration URL with API key:**
+3. **Add your integration URL (no API key needed):**
    ```
-   https://magiceye.netlify.app?openai_key=your_openai_api_key_here
+   https://magiceye.netlify.app
    ```
 4. Set the integration to appear in the sidebar
 5. Save the integration
+
+**That's it!** No API keys in URLs, no security risks.
 
 ## Environment Variables
 
@@ -74,19 +77,20 @@ The integration now supports two methods for configuration:
 
 ## Security Notes
 
-🔐 **IMPORTANT SECURITY UPDATE**: 
-- **API keys are NO LONGER embedded in public application files** for security
-- **Environment variables** are validated during build but not exposed in deployed files
-- **URL parameters** are now the secure method for providing API keys (not stored in public files)
+🔐 **SECURE SERVER-SIDE ARCHITECTURE**: 
+- **API keys are handled completely server-side** via Netlify serverless functions
+- **Zero client-side API key exposure** - keys never leave the secure server environment
+- **No API keys in URLs, config files, or browser code** - maximum security
+- **Secure proxy architecture** - client calls server function, server calls OpenAI API
 - All communication happens over HTTPS when properly deployed
-- Email content is sent to OpenAI's API for processing
+- Email content is processed securely through our server-side proxy
 - **Previous versions exposed API keys publicly** - ensure you revoke any previously exposed keys
 
 ## Migration Guide
 
-### 🚨 CRITICAL SECURITY UPDATE
+### 🚨 CRITICAL SECURITY UPDATE → FULLY SECURE
 
-**Previous versions exposed API keys in public files - IMMEDIATE ACTION REQUIRED:**
+**Previous versions exposed API keys in public files - NOW COMPLETELY SECURE:**
 
 1. **REVOKE exposed API keys immediately:**
    - OpenAI: Go to [API Keys](https://platform.openai.com/api-keys) → Revoke current key
@@ -96,11 +100,16 @@ The integration now supports two methods for configuration:
    - Create new OpenAI API key
    - Create new Missive API token
 
-3. **Update your integration URL:**
-   - Use: `https://magiceye.netlify.app?openai_key=your_new_key_here`
-   - API keys are no longer embedded in public files
+3. **Set up secure server-side configuration:**
+   - Go to Netlify Site Settings → Environment Variables
+   - Add `OPEN_AI_API` with your new OpenAI API key
+   - Add `MISSIVE_API_TOKEN` with your new Missive API token
 
-4. **Deploy the secure version** to fix the vulnerability
+4. **Update your Missive integration URL (clean & secure):**
+   - **New secure URL:** `https://magiceye.netlify.app`
+   - **No API keys in URL** - completely secure!
+
+5. **Deploy the secure version** - API keys are now 100% server-side protected
 
 ## License
 
