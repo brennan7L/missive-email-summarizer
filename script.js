@@ -267,7 +267,13 @@ class EmailSummarizer {
 FIRST, analyze the tone of the following email thread and classify it into one of these categories:
 Happy, Satisfied, Neutral, Frustrated, or Angry.
 
-Also provide a confidence score from 1-100 indicating how certain you are about this tone classification.
+Also provide a confidence score from 1-100 indicating how certain you are about this tone classification. Use these guidelines for confidence scoring:
+• 90-100: Very clear emotional indicators, explicit language, multiple confirming signals
+• 80-89: Strong indicators with some ambiguity or mixed signals
+• 70-79: Moderate indicators, some uncertainty due to professional language masking emotions
+• 60-69: Weak indicators, mostly neutral with subtle hints
+• 50-59: Very ambiguous, could be interpreted multiple ways
+• Below 50: Insufficient information or contradictory signals
 
 Start your response with: "TONE: [category] | CONFIDENCE: [score]"
 
@@ -354,12 +360,16 @@ ${threadText}`;
      * Extract tone and confidence from AI response and return cleaned summary
      */
     extractTone(summaryText) {
+        // Log the raw AI response for debugging
+        console.log('Raw AI response (first 200 chars):', summaryText.substring(0, 200));
+        
         // Look for TONE: [category] | CONFIDENCE: [score] at the beginning of the response
         const toneMatch = summaryText.match(/^TONE:\s*(Happy|Satisfied|Neutral|Frustrated|Angry)\s*\|\s*CONFIDENCE:\s*(\d+)/i);
         
         if (toneMatch) {
             const tone = toneMatch[1];
             const confidence = parseInt(toneMatch[2]);
+            console.log(`Tone analysis: ${tone}, Confidence: ${confidence}%`);
             // Remove the tone line from the summary
             const cleanedSummary = summaryText.replace(/^TONE:\s*\w+\s*\|\s*CONFIDENCE:\s*\d+\s*\n?/i, '').trim();
             return { tone, confidence, cleanedSummary };
@@ -370,10 +380,12 @@ ${threadText}`;
         if (simpleToneMatch) {
             const tone = simpleToneMatch[1];
             const cleanedSummary = summaryText.replace(/^TONE:\s*\w+\s*\n?/i, '').trim();
+            console.log(`Tone analysis (fallback): ${tone}, using default confidence: 75%`);
             return { tone, confidence: 75, cleanedSummary }; // Default confidence
         }
         
         // Default to Neutral if no tone found
+        console.log('No tone found in response, using default: Neutral, 50%');
         return { tone: 'Neutral', confidence: 50, cleanedSummary: summaryText };
     }
 
