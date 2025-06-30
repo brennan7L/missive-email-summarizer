@@ -2103,13 +2103,26 @@ ${threadText}`;
 // Initialize the integration when the page loads
 let emailSummarizer;
 document.addEventListener('DOMContentLoaded', () => {
-    emailSummarizer = new EmailSummarizer();
+    function initializeWhenReady() {
+        if (window.configLoaded) {
+            console.log('🚀 Config loaded, initializing EmailSummarizer...');
+            emailSummarizer = new EmailSummarizer();
+            
+            // Make it globally available for onclick handlers
+            window.emailSummarizer = emailSummarizer;
+            
+            initializeGlobalFunctions();
+        } else {
+            console.log('⏳ Waiting for config to load...');
+            setTimeout(initializeWhenReady, 100);
+        }
+    }
     
-    // Make it globally available for onclick handlers
-    window.emailSummarizer = emailSummarizer;
+    initializeWhenReady();
     
-    // Expose debug functions globally
-    window.debugMissiveUsers = () => emailSummarizer.debugShowMissiveUsers();
+    function initializeGlobalFunctions() {
+        // Expose debug functions globally
+        window.debugMissiveUsers = () => emailSummarizer.debugShowMissiveUsers();
     window.debugAssignmentTest = () => emailSummarizer.debugTestAssignment();
     window.testUserMapping = (name) => {
         const mapping = emailSummarizer.get7LUserMapping();
@@ -2168,6 +2181,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         console.log('🔍 === END BUTTON DEBUG ===');
     };
+    }
 });
 
 // Handle errors globally

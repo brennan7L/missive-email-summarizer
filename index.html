@@ -89,9 +89,15 @@
         // Try to load config.js, but don't fail if it doesn't exist (for Netlify deployment)
         const configScript = document.createElement('script');
         configScript.src = 'config.js';
+        configScript.onload = function() {
+            console.log('✅ config.js loaded successfully');
+            // Config is now available, safe to initialize
+            window.configLoaded = true;
+        };
         configScript.onerror = function() {
             console.log('📝 config.js not found (expected for Netlify deployment)');
             // For Netlify: API token should be set via environment variables or URL params
+            window.configLoaded = true; // Still proceed
         };
         document.head.appendChild(configScript);
     </script>
