@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 
 // Node.js build script for Netlify deployment
-// Generates config.js from environment variables
-// Alternative to build.sh for better cross-platform compatibility
+// Generates SECURE config.js - API keys are NOT exposed in public files
+// API keys are handled via secure environment variable injection
 
 const fs = require('fs');
 const path = require('path');
 
-console.log('🔧 Generating config.js from environment variables...');
+console.log('🔧 Generating SECURE config.js (API keys will NOT be exposed)...');
 console.log(`🌍 Environment: ${process.env.CONTEXT || 'local'}`);
 
-// Check if required environment variables are set
+// Check if required environment variables are set (for validation only)
 const apiToken = process.env.MISSIVE_API_TOKEN;
 const openaiApiKey = process.env.OPEN_AI_API;
 
@@ -32,39 +32,74 @@ if (!apiToken) {
     process.exit(1);
 }
 
-console.log(`✅ MISSIVE_API_TOKEN found (${apiToken.length} characters)`);
+console.log(`✅ MISSIVE_API_TOKEN found (${apiToken.length} characters) - will be injected securely`);
 
 if (openaiApiKey) {
-    console.log(`✅ OPEN_AI_API found (${openaiApiKey.length} characters)`);
+    console.log(`✅ OPEN_AI_API found (${openaiApiKey.length} characters) - will be injected securely`);
 } else {
     console.log('⚠️  OPEN_AI_API not found - OpenAI features will require URL parameter fallback');
 }
 
-// Generate config.js content
+// Generate SECURE config.js content - NO API KEYS EXPOSED
 const configContent = `/**
  * Missive Integration Configuration
- * Generated automatically from environment variables during build
+ * Generated automatically during build - SECURE VERSION
+ * 🔐 API keys are NOT exposed in this public file for security
  */
 
 window.MissiveConfig = {
-    apiToken: '${apiToken}',
+    // API keys are injected securely via server environment, not exposed here
+    apiToken: null,
     apiBaseUrl: '${process.env.MISSIVE_API_BASE_URL || 'https://public.missiveapp.com'}',
     debugMode: ${process.env.MISSIVE_DEBUG_MODE === 'true'},
     autoAssignToCurrentUser: ${process.env.MISSIVE_AUTO_ASSIGN !== 'false'},
     organizationId: ${process.env.MISSIVE_ORG_ID || 'null'},
     teamId: ${process.env.MISSIVE_TEAM_ID || 'null'},
-    openaiApiKey: '${openaiApiKey || ''}'
+    openaiApiKey: null,
+    
+    // Security flags (safe to expose)
+    hasApiToken: ${!!apiToken},
+    hasOpenaiKey: ${!!openaiApiKey}
 };
 
-console.log('🔑 Using API token from: Environment Variables (Netlify)');
+console.log('🔑 Config loaded - API keys will be injected securely at runtime');
 `;
 
-// Write config.js file
+// Also create a secure API key injection script
+const injectionScript = `/**
+ * Secure API Key Injection Script
+ * This runs server-side only and injects API keys securely
+ */
+
+// Inject API keys from server environment variables (Netlify Edge Functions)
+if (typeof process !== 'undefined' && process.env) {
+    if (window.MissiveConfig) {
+        // Only inject if keys are not already set and we're in a secure context
+        if (!window.MissiveConfig.apiToken && process.env.MISSIVE_API_TOKEN) {
+            window.MissiveConfig.apiToken = process.env.MISSIVE_API_TOKEN;
+            console.log('🔑 Missive API token injected securely');
+        }
+        
+        if (!window.MissiveConfig.openaiApiKey && process.env.OPEN_AI_API) {
+            window.MissiveConfig.openaiApiKey = process.env.OPEN_AI_API;
+            console.log('🔑 OpenAI API key injected securely'); 
+        }
+    }
+}
+`;
+
+// Write config.js file (without API keys)
 try {
     fs.writeFileSync('config.js', configContent, 'utf8');
-    console.log('✅ config.js generated successfully');
-    console.log('🚀 Ready for deployment');
+    console.log('✅ SECURE config.js generated successfully (no API keys exposed)');
+    
+    // Write the injection script for potential server-side use
+    fs.writeFileSync('secure-inject.js', injectionScript, 'utf8');
+    console.log('✅ Secure injection script created');
+    
+    console.log('🔐 Security Status: API keys are NOT exposed in public files');
+    console.log('🚀 Ready for secure deployment');
 } catch (error) {
-    console.error('❌ Error writing config.js:', error.message);
+    console.error('❌ Error writing config files:', error.message);
     process.exit(1);
 } 

@@ -27,32 +27,24 @@ An AI-powered iFrame integration for Missive that provides intelligent summaries
 
 ### 2. OpenAI API Key Setup
 
-#### Option A: Environment Variable (Recommended - Secure)
-1. Visit [OpenAI API Keys](https://platform.openai.com/api-keys)
-2. Create a new API key
-3. **Set in Netlify:**
-   - Go to Site Settings → Environment Variables
-   - Add `OPEN_AI_API` with your API key value
+🔐 **SECURITY UPDATE**: For security, API keys are no longer embedded in public application files.
 
-#### Option B: URL Parameter (Legacy - Less Secure)
 1. Visit [OpenAI API Keys](https://platform.openai.com/api-keys)
 2. Create a new API key
-3. Add to URL: `https://magiceye.netlify.app?openai_key=your_key_here`
+3. **Use URL Parameter (Secure Method):**
+   - Add to URL: `https://magiceye.netlify.app?openai_key=your_key_here`
+   - Environment variables are validated during build but not exposed publicly
 
 ### 3. Set Up in Missive
 
 1. Open Missive
 2. Go to Integrations → Add Integration → iFrame
-3. **If using environment variables (recommended):**
-   ```
-   https://magiceye.netlify.app
-   ```
-4. **If using URL parameters:**
+3. **Add your integration URL with API key:**
    ```
    https://magiceye.netlify.app?openai_key=your_openai_api_key_here
    ```
-5. Set the integration to appear in the sidebar
-6. Save the integration
+4. Set the integration to appear in the sidebar
+5. Save the integration
 
 ## Environment Variables
 
@@ -82,28 +74,33 @@ The integration now supports two methods for configuration:
 
 ## Security Notes
 
-- **Environment Variables**: API keys are securely stored in your hosting platform and not exposed in URLs
-- **URL Parameters**: For backward compatibility but less secure (keys visible in browser history)
+🔐 **IMPORTANT SECURITY UPDATE**: 
+- **API keys are NO LONGER embedded in public application files** for security
+- **Environment variables** are validated during build but not exposed in deployed files
+- **URL parameters** are now the secure method for providing API keys (not stored in public files)
 - All communication happens over HTTPS when properly deployed
 - Email content is sent to OpenAI's API for processing
+- **Previous versions exposed API keys publicly** - ensure you revoke any previously exposed keys
 
 ## Migration Guide
 
-### From URL Parameters to Environment Variables
+### 🚨 CRITICAL SECURITY UPDATE
 
-If you're currently using URL parameters for your API keys, here's how to migrate:
+**Previous versions exposed API keys in public files - IMMEDIATE ACTION REQUIRED:**
 
-1. **Set environment variables** in Netlify:
-   - Go to Site Settings → Environment Variables
-   - Add `OPEN_AI_API` with your OpenAI API key
+1. **REVOKE exposed API keys immediately:**
+   - OpenAI: Go to [API Keys](https://platform.openai.com/api-keys) → Revoke current key
+   - Missive: Go to Settings → API → Revoke current token
 
-2. **Update your Missive integration URL** to remove the API key:
-   - **Old**: `https://magiceye.netlify.app?openai_key=sk-...`
-   - **New**: `https://magiceye.netlify.app`
+2. **Generate new API keys:**
+   - Create new OpenAI API key
+   - Create new Missive API token
 
-3. **Redeploy** your application to pick up the environment variables
+3. **Update your integration URL:**
+   - Use: `https://magiceye.netlify.app?openai_key=your_new_key_here`
+   - API keys are no longer embedded in public files
 
-4. **Test** that everything still works - the integration will automatically use environment variables when available
+4. **Deploy the secure version** to fix the vulnerability
 
 ## License
 

@@ -137,16 +137,13 @@ class EmailSummarizer {
     }
 
     /**
-     * Extract OpenAI API key from environment variables or URL parameters
+     * Extract OpenAI API key from URL parameters only (secure approach)
+     * API keys are no longer exposed in public config files
      */
     extractApiKey() {
-        // First check environment variable from config
-        if (window.MissiveConfig && window.MissiveConfig.openaiApiKey) {
-            console.log('API Key check: Found API key from environment variable');
-            return window.MissiveConfig.openaiApiKey;
-        }
+        // Security note: API keys are no longer embedded in public files
+        // They must be provided via URL parameters for security
         
-        // Fallback to URL parameters for backward compatibility
         const urlParams = new URLSearchParams(window.location.search);
         const apiKey = urlParams.get('openai_key') || urlParams.get('api_key');
         
@@ -155,8 +152,15 @@ class EmailSummarizer {
             return apiKey;
         }
         
+        // Check if config indicates environment variable was available during build
+        if (window.MissiveConfig && window.MissiveConfig.hasOpenaiKey) {
+            console.log('Security Notice: OpenAI API key was configured in environment variables but not exposed in public files for security.');
+            this.showError('For security, API keys are no longer embedded in public files. Please add your OpenAI API key to the URL: ?openai_key=your_key_here');
+            return null;
+        }
+        
         console.log('API Key check: No API key found');
-        this.showError('OpenAI API key not found. Please set the OPEN_AI_API environment variable in Netlify or add ?openai_key=your_key_here to the URL.');
+        this.showError('OpenAI API key required. Please add it to the URL: ?openai_key=your_key_here\n\nFor security, API keys are no longer embedded in the application files.');
         return null;
     }
 
@@ -1217,19 +1221,14 @@ ${threadText}`;
      * 3. Go to Missive Settings > API > Create a new token for the token value
      */
     getMissiveApiToken() {
-        // Try multiple sources for the API token (in priority order)
+        // Security: API tokens are no longer embedded in public files
+        // They must be provided via URL parameters for security
+        
         let token = null;
         let source = 'none';
         
-        // 1. Check MissiveConfig object (recommended - from config.js)
-        if (window.MissiveConfig?.apiToken && 
-            window.MissiveConfig.apiToken !== 'missive_pat-your_actual_token_here') {
-            token = window.MissiveConfig.apiToken;
-            source = 'MissiveConfig (config.js)';
-        }
-        
-        // 1b. Check URL parameters (for Netlify deployment)
-        else if (this.getUrlParameter('missive_api_token') || this.getUrlParameter('api_token')) {
+        // 1. Check URL parameters (secure method)
+        if (this.getUrlParameter('missive_api_token') || this.getUrlParameter('api_token')) {
             token = this.getUrlParameter('missive_api_token') || this.getUrlParameter('api_token');
             source = 'URL parameters';
         }
@@ -1246,10 +1245,12 @@ ${threadText}`;
             source = 'localStorage';
         }
         
-        // 4. Check environment variables (build process)
-        else if (typeof process !== 'undefined' && process?.env?.MISSIVE_API_TOKEN) {
-            token = process.env.MISSIVE_API_TOKEN;
-            source = 'environment variables';
+        // Check if environment variable was available during build but not exposed
+        else if (window.MissiveConfig?.hasApiToken) {
+            console.log('🔐 Security Notice: Missive API token was configured in environment variables but not exposed in public files for security.');
+            console.log('💡 For task assignment functionality, please add the token to the URL:');
+            console.log('   ?missive_api_token=your_token_here');
+            return null;
         }
         
         if (token) {
@@ -1259,10 +1260,9 @@ ${threadText}`;
             console.log(`🔐 Token: ${maskedToken}`);
         } else {
             console.log('⚠️ No API token configured for REST API calls');
-            console.log('💡 To enable proper task assignment:');
-            console.log('   1. Copy config.example.js to config.js');
-            console.log('   2. Edit config.js with your actual API token');
-            console.log('   3. Get token from: Missive Settings > API > Create a new token');
+            console.log('💡 For security, API tokens are no longer embedded in application files.');
+            console.log('   Please add your token to the URL: ?missive_api_token=your_token_here');
+            console.log('   Get token from: Missive Settings > API > Create a new token');
         }
         
         return token;
