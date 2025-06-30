@@ -245,16 +245,64 @@ class EmailSummarizer {
     }
 
     /**
+     * Truncate email thread to handle large conversations
+     */
+    truncateEmailThread(emailThread) {
+        const MAX_MESSAGES = 8; // Limit to most recent 8 messages
+        const MAX_MESSAGE_LENGTH = 1500; // Max characters per message body
+        
+        // Sort by date (most recent first) and take the most recent messages
+        const sortedThread = [...emailThread]
+            .sort((a, b) => new Date(b.date) - new Date(a.date))
+            .slice(0, MAX_MESSAGES);
+        
+        // Truncate individual message bodies if they're too long
+        const truncatedThread = sortedThread.map(msg => {
+            let body = msg.body;
+            
+            if (body.length > MAX_MESSAGE_LENGTH) {
+                body = body.substring(0, MAX_MESSAGE_LENGTH) + '\n\n[MESSAGE TRUNCATED - Content was too long]';
+                console.log(`✂️ Truncated message from ${msg.sender} (${msg.body.length} → ${body.length} chars)`);
+            }
+            
+            return {
+                ...msg,
+                body: body
+            };
+        });
+        
+        // Sort back to chronological order (oldest first) for context
+        const finalThread = truncatedThread.sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        if (emailThread.length > MAX_MESSAGES) {
+            console.log(`📧 Thread truncated: ${emailThread.length} → ${finalThread.length} messages`);
+        }
+        
+        return finalThread;
+    }
+
+    /**
      * Generate summary using OpenAI API
      */
     async generateSummary(emailThread) {
         // No API key needed on client side - using secure server-side proxy
         console.log('🔐 Using secure server-side API proxy');
 
+        // Handle large email threads by truncating content
+        const processedThread = this.truncateEmailThread(emailThread);
+        console.log(`📧 Processing ${processedThread.length} messages (truncated from ${emailThread.length} if needed)`);
+
         // Prepare the email thread text
-        const threadText = emailThread.map(msg => 
+        const threadText = processedThread.map(msg => 
             `From: ${msg.sender}\nDate: ${msg.date}\n\n${msg.body}\n\n---\n`
         ).join('\n');
+
+        // Check if content was truncated
+        const wasTruncated = emailThread.length > processedThread.length || 
+                           processedThread.some(msg => msg.body.includes('[MESSAGE TRUNCATED'));
+        
+        const truncationNote = wasTruncated ? 
+            '\n\nNOTE: This email thread was truncated due to length. The summary covers the most recent and relevant messages.' : '';
 
         const prompt = `Act as a professional business communication analyst.
 
@@ -278,10 +326,11 @@ Ensure that your summary:
 • Retains the intent and tone of any important statements
 • Highlights who is responsible for each action (when mentioned)
 • Uses clear and neutral business language
+${wasTruncated ? '• Notes when content was truncated due to email thread length' : ''}
 
 Here's the email thread:
 
-${threadText}`;
+${threadText}${truncationNote}`;
 
         // Use secure server-side proxy endpoint
         const proxyUrl = `${window.location.origin}/.netlify/functions/openai-proxy`;
