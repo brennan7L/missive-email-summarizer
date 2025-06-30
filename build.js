@@ -10,18 +10,20 @@ const path = require('path');
 console.log('🔧 Generating config.js from environment variables...');
 console.log(`🌍 Environment: ${process.env.CONTEXT || 'local'}`);
 
-// Check if MISSIVE_API_TOKEN is set
+// Check if required environment variables are set
 const apiToken = process.env.MISSIVE_API_TOKEN;
+const openaiApiKey = process.env.OPEN_AI_API;
+
 if (!apiToken) {
     console.error('❌ Error: MISSIVE_API_TOKEN environment variable is not set');
     console.log('📋 Available environment variables:');
     
-    const missiveVars = Object.keys(process.env)
-        .filter(key => key.includes('MISSIVE') || key.includes('NETLIFY'))
+    const relevantVars = Object.keys(process.env)
+        .filter(key => key.includes('MISSIVE') || key.includes('NETLIFY') || key.includes('OPEN_AI'))
         .map(key => `   ${key}=${process.env[key] ? '[SET]' : '[EMPTY]'}`);
     
-    if (missiveVars.length > 0) {
-        console.log(missiveVars.join('\n'));
+    if (relevantVars.length > 0) {
+        console.log(relevantVars.join('\n'));
     } else {
         console.log('   (none found)');
     }
@@ -31,6 +33,12 @@ if (!apiToken) {
 }
 
 console.log(`✅ MISSIVE_API_TOKEN found (${apiToken.length} characters)`);
+
+if (openaiApiKey) {
+    console.log(`✅ OPEN_AI_API found (${openaiApiKey.length} characters)`);
+} else {
+    console.log('⚠️  OPEN_AI_API not found - OpenAI features will require URL parameter fallback');
+}
 
 // Generate config.js content
 const configContent = `/**
@@ -44,7 +52,8 @@ window.MissiveConfig = {
     debugMode: ${process.env.MISSIVE_DEBUG_MODE === 'true'},
     autoAssignToCurrentUser: ${process.env.MISSIVE_AUTO_ASSIGN !== 'false'},
     organizationId: ${process.env.MISSIVE_ORG_ID || 'null'},
-    teamId: ${process.env.MISSIVE_TEAM_ID || 'null'}
+    teamId: ${process.env.MISSIVE_TEAM_ID || 'null'},
+    openaiApiKey: '${openaiApiKey || ''}'
 };
 
 console.log('🔑 Using API token from: Environment Variables (Netlify)');

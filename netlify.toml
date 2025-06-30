@@ -10,6 +10,7 @@
   MISSIVE_API_BASE_URL = "https://public.missiveapp.com"
   MISSIVE_DEBUG_MODE = "false"
   MISSIVE_AUTO_ASSIGN = "true"
+  # OPEN_AI_API should be set in Netlify dashboard for security
 
 # Security headers - Allow embedding in Missive
 [[headers]]

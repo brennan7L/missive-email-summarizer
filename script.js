@@ -137,20 +137,27 @@ class EmailSummarizer {
     }
 
     /**
-     * Extract OpenAI API key from URL parameters
+     * Extract OpenAI API key from environment variables or URL parameters
      */
     extractApiKey() {
+        // First check environment variable from config
+        if (window.MissiveConfig && window.MissiveConfig.openaiApiKey) {
+            console.log('API Key check: Found API key from environment variable');
+            return window.MissiveConfig.openaiApiKey;
+        }
+        
+        // Fallback to URL parameters for backward compatibility
         const urlParams = new URLSearchParams(window.location.search);
         const apiKey = urlParams.get('openai_key') || urlParams.get('api_key');
         
-        console.log('API Key check:', apiKey ? 'Found API key' : 'No API key found');
-        
-        if (!apiKey) {
-            this.showError('OpenAI API key not found in URL parameters. Please add ?openai_key=your_key_here to the URL.');
-            return null;
+        if (apiKey) {
+            console.log('API Key check: Found API key from URL parameters');
+            return apiKey;
         }
         
-        return apiKey;
+        console.log('API Key check: No API key found');
+        this.showError('OpenAI API key not found. Please set the OPEN_AI_API environment variable in Netlify or add ?openai_key=your_key_here to the URL.');
+        return null;
     }
 
     /**
