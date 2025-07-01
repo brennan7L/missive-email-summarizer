@@ -792,11 +792,57 @@ ${threadText}${truncationNote}`;
     }
 
     /**
+     * Check if a section contains only "no content" messages
+     */
+    isEmptySection(content) {
+        const cleanContent = content.toLowerCase().trim();
+        const emptyPhrases = [
+            'no specific deadlines mentioned',
+            'no deadlines mentioned',
+            'no action items',
+            'no key decisions',
+            'no decisions mentioned',
+            'no open questions',
+            'no questions mentioned',
+            'no important context',
+            'no context mentioned',
+            'no follow-up',
+            'no follow up',
+            'no next steps',
+            'no additional',
+            'none mentioned',
+            'not mentioned',
+            'no specific',
+            'no particular'
+        ];
+        
+        return emptyPhrases.some(phrase => cleanContent.includes(phrase));
+    }
+
+    /**
      * Create a collapsible section element
      */
     createCollapsibleSection(title, content, isExpanded = false) {
         const sectionDiv = document.createElement('div');
         sectionDiv.className = 'summary-section';
+
+        // Check if this is an empty/no-content section
+        const isEmptySection = this.isEmptySection(content);
+
+        if (isEmptySection) {
+            // Create simplified header for empty sections
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'section-header empty-section';
+            headerDiv.innerHTML = `
+                <span class="section-title">${title}</span>
+                <div class="header-buttons">
+                    <span class="empty-indicator">🚫</span>
+                </div>
+            `;
+            
+            sectionDiv.appendChild(headerDiv);
+            return sectionDiv;
+        }
 
         // Count items in the section
         const itemCount = this.countSectionItems(content);
